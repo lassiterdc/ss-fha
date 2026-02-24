@@ -1,3 +1,9 @@
+## About this code base:
+
+- The primary purpose of this code base is computing flood hazard and flood hazard uncertainty using bootstrapping from 2D flood model results
+- There is also ground work laid for deeper analyses into shape-file defined subareas and flood risk quantification (using road and building shapefiles) that is currently a lower priority, but the base functionality is here
+- Visualizing flood hazard and flood hazard uncertainty is also a core functionality
+
 ## Development Philosophy
 
 ### Let's do things right, even if it takes more effort
@@ -7,6 +13,8 @@
 - Always be on the lookout for better ways of achieving development goals and raise these ideas to the user 
 - Look for opportunities to provide more information about programming or software-specific best practices to help guide the user's decision making
 - Raise concerns when you suspect the user is making design decisions that diverge with best practices
+- Look for opportunities to make the code more efficient (e.g., vectorize operations, be careful with loops involving pandas operations, etc.)
+- Be alert for mathematical errors in probability and return period calculations
 
 ### Backward compatibility is NOT a priority for this project
 
