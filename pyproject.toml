@@ -95,3 +95,8 @@ exclude_also = [
 [tool.uv]
 package = true
 default-groups = ["dev"]
+
+
+[tool.esbonio.sphinx]
+buildCommand = ["sphinx-build", "-b", "html", "docs", "docs/_build"]
+pythonCommand = ["C:\Users\Daniel\Miniconda3\envs\ss-fha\python.exe"]
