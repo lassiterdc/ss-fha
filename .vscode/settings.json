@@ -1,0 +1,10 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"python.defaultInterpreterPath": "C:Users\\Daniel\\Miniconda3\\envs\\ss-fha\\python.exe",
+	}
+}
