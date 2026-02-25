@@ -10,6 +10,7 @@
 4. Support HPC execution (particularly SLURM) for executing Snakemake
 5. Create case studies using data hosted on HydroShare
 6. Follow patterns from TRITON-SWMM_toolkit (config, validation, runner scripts, workflow generation, examples/test infrastructure)
+    - **NOTE**: This library IS in the current environment, so if any functions or classes can be used as-is, they should be imported rather than duplicated here.
 7. Phased implementation with each phase independently testable
 
 ### Assumptions
