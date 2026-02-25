@@ -40,6 +40,15 @@ These terms align with TRITON-SWMM_toolkit's `system_config` / `analysis_config`
 
 ## Development Philosophy
 
+### Raise questions rather than make assumptions
+
+- When you encounter uncertainty or discrepencies, especially when implementing a prewritten plan that my stale components, err on the side of caution and ask the developer how to proceed
+
+### Plan, then implement
+
+- The developer has a strong preference for a plan-then-implement strategy as outlined in .prompts/implementation_plan.md
+- RISK: sometimes planning documents can become stale because of other changes, especially for larger refactors. Each plan should therefore be validated prior to implementation. If there is uncertainty or discrepancies, raise questions.
+
 ### Developer-AI Communication
 
 - In planning documents, all comments followed by "#user:" are meant as feedback for the AI and must ALL be addressed before any implementation can take place

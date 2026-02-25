@@ -114,6 +114,10 @@ After drafting the plan, perform and report this check:
    - Does the approach align with the design philosphy of this project?
    - Are there any adjustments that should be made to make the plan abide by good software development practices?
 
+4. **Make sure that only task-relevant information is included**
+   - During plan refinement with the developer, the document often gets bloated with information that is not actually relevant to implementing the plan
+   - Remove any irrelevant or redundant information from the planning document
+
 Report a short “Self-Check Results” summary at the end.
 
 ## Approval Gate
