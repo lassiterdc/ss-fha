@@ -50,7 +50,8 @@ A core use case is comparing flood hazard estimates across different methodologi
 **FHA approach types** (`fha_approach` field):
 - `ssfha` — the full stochastic ensemble approach implemented here
 - `bds` — basic design storm (single deterministic event per return period)
-- `mcds` — Monte Carlo design storm (subsets of the ssfha ensemble, with its own uncertainty approach)
+
+**MCDS (Monte Carlo design storm)** is not a separate `fha_approach`. Because MCDS subsets design storms directly from the stochastic ensemble (no independent model inputs), it is implemented as `toggle_mcds: bool` on the primary SSFHA combined config. Enabling it triggers additional analysis steps within Phase 3E. A standalone MCDS method (independent stochastic event generation) is a shelved future improvement — it would require a new weather model run and simulation ensemble. See work chunk 00 Decision 3.
 
 **Config structure:**
 
@@ -58,18 +59,18 @@ The primary `SSFHAConfig` YAML defines the baseline analysis. An optional `alt_f
 
 ```yaml
 # Primary analysis YAML (defines the baseline)
-fha_id: ssfha_compound
+fha_id: ssfha_combined
 fha_approach: ssfha
 triton_outputs:
-  compound: path/to/compound.zarr
-# ... rest of config ...
+  combined: path/to/combined.zarr     # "combined" = rain + surge drivers
+  observed: path/to/observed.zarr     # required when toggle_ppcct: true
+toggle_mcds: true                     # MCDS subsets from this ensemble — no separate fha_id
 
 # Optional: list of alternative analyses to compare against baseline
 alt_fha_analyses:
   - path/to/rainonly_config.yaml    # fha_id: ssfha_rainonly, fha_approach: ssfha
   - path/to/surgeonly_config.yaml   # fha_id: ssfha_surgeonly
-  - path/to/design_storm_config.yaml  # fha_id: bds_100yr, fha_approach: bds
-  - path/to/mcds_config.yaml          # fha_id: mcds, fha_approach: mcds
+  - path/to/design_storm_config.yaml  # fha_id: bds_combined_24hr, fha_approach: bds
 ```
 
 Alternative config YAMLs **inherit** all fields from the primary config except: `fha_id`, `fha_approach`, `triton_outputs`, and approach-specific parameters. Validation ensures all `fha_id` values are unique across primary and alternatives.
@@ -81,14 +82,14 @@ The `{fha_id}` wildcard drives all flood hazard and uncertainty rules, enabling 
 ```
 # All FHA analyses run in parallel via wildcard
 rule flood_hazard:
-    input: lambda w: fha_configs[w.fha_id].triton_outputs.compound
-    output: "{output_dir}/{fha_id}/flood_probabilities/compound.zarr"
+    input: lambda w: fha_configs[w.fha_id].triton_outputs.combined
+    output: "{output_dir}/{fha_id}/flood_probabilities/combined.zarr"
 
 # Comparison only runs after both baseline and alternative are done
 rule fha_comparison:
     input:
-        baseline="{output_dir}/{baseline_id}/flood_probabilities/compound.zarr",
-        alternative="{output_dir}/{alt_id}/flood_probabilities/compound.zarr"
+        baseline="{output_dir}/{baseline_id}/flood_probabilities/combined.zarr",
+        alternative="{output_dir}/{alt_id}/flood_probabilities/combined.zarr"
     output: "{output_dir}/comparisons/{baseline_id}_vs_{alt_id}/difference.zarr"
 ```
 
@@ -354,21 +355,21 @@ This directory holds data *intended* for eventual HydroShare upload. It may be i
 
 | File (in staging dir) | Type | Staged Name | Used By | Status |
 |------|------|-------------|---------|--------|
-| SS compound TRITON+SWMM peak flood depths | Zarr | `model_results/ss_tritonswmm.zarr` | 1, 2, 4 | ✓ Present |
+| SS combined (rain+surge) TRITON+SWMM peak flood depths | Zarr | `model_results/ss_tritonswmm_combined.zarr` | 1, 2, 4 | ✓ Present |
 | SS rain-only TRITON+SWMM peak flood depths | Zarr | `model_results/ss_tritonswmm_rainonly.zarr` | 1, 2 | ✓ Present |
 | SS surge-only TRITON+SWMM peak flood depths | Zarr | `model_results/ss_tritonswmm_surgeonly.zarr` | 1, 2 | ✓ Present |
-| SS TRITON-only peak flood depths | Zarr | `model_results/ss_triton_only.zarr` | 1, 2 | ✓ Present |
-| Design storm compound peak flood depths | Zarr | `model_results/design_storm_tritonswmm.zarr` | Comparison | ✓ Present |
-| Design storm rain-only peak flood depths | Zarr | `model_results/design_storm_tritonswmm_rainonly.zarr` | Comparison | ✓ Present |
-| Design storm surge-only peak flood depths | Zarr | `model_results/design_storm_tritonswmm_surgeonly.zarr` | Comparison | ✓ Present |
-| Observed event peak flood depths | Zarr | `model_results/obs_tritonswmm.zarr` | 3 (PPCCT) | ✓ Present |
+| SS TRITON-only (no SWMM) peak flood depths | Zarr | `model_results/ss_triton_only_combined.zarr` | 1, 2 | ✓ Present |
+| Design storm combined peak flood depths | Zarr | `model_results/design_storm_tritonswmm_combined.zarr` | Comparison, BDS | ✓ Present |
+| Design storm rain-only peak flood depths | Zarr | `model_results/design_storm_tritonswmm_rainonly.zarr` | Comparison, BDS | ✓ Present |
+| Design storm surge-only peak flood depths | Zarr | `model_results/design_storm_tritonswmm_surgeonly.zarr` | Comparison, BDS | ✓ Present |
+| Observed event peak flood depths | Zarr | `model_results/obs_tritonswmm_combined.zarr` | 3 (PPCCT) | ✓ Present |
 | SS simulation event summaries | CSV | `events/ss_simulation_summaries.csv` | 1, 2, 3 | ✓ Present |
 | SS event iloc mapping | CSV | `events/ss_event_iloc_mapping.csv` | 1, 2, 3 | ✓ Present |
 | SS simulation time series | NetCDF | `events/ss_simulation_time_series.nc` | Event stats | ✓ Present (~4 GB) |
 | Observed event summaries | CSV | `events/obs_event_summaries_from_yrs_with_complete_coverage.csv` | 3 | ✓ Present |
 | Observed event iloc mapping | CSV | `events/obs_event_iloc_mapping.csv` | 3 | ✓ Present |
 | Observed event time series | NetCDF | `events/obs_event_tseries_from_yrs_with_complete_coverage.nc` | 3, Event stats | ✓ Present |
-| Design storm event time series (compound) | NetCDF | `events/design_storm_combined.nc` | Comparison | ✓ Present |
+| Design storm event time series (combined) | NetCDF | `events/design_storm_combined.nc` | Comparison | ✓ Present |
 | Design storm event time series (rain-only) | NetCDF | `events/design_storm_rainonly.nc` | Comparison | ✓ Present |
 | Design storm event time series (surge-only) | NetCDF | `events/design_storm_surgeonly.nc` | Comparison | ✓ Present |
 | NOAA tide gage data | CSV | N/A — not a pipeline input | Plotting only | Not required |
@@ -382,22 +383,24 @@ This directory holds data *intended* for eventual HydroShare upload. It may be i
 | AOI shapefile | Shapefile | N/A — not used; watershed used directly | 4 | Not required |
 
 **Key structural notes on staged data**:
-- All SS zarrs: dims `(x: 526, y: 513, event_iloc: 3798)`, variable `max_wlevel_m`; `event_iloc` maps to events via `ss_event_iloc_mapping.csv`
-- Design storm zarrs: dims `(x: 526, y: 513, return_pd_yrs: 4)` — indexed by return period, not event number
+- All SS zarrs: dims `(x: 526, y: 513, event_iloc: 3798)`, variable `max_wlevel_m`, coords `x, y, event_iloc` only — scalar metadata coordinates (e.g., `ensemble_type`) have been removed; simulation type is encoded in the filename
+- Observed zarr: dims `(x: 526, y: 513, event_iloc: 71)` — same spatial grid as SS zarrs; 71 observed events
+- Design storm zarrs: dims `(return_pd_yrs: 4, x: 526, y: 513)` — indexed by return period `[1,2,10,100 yr]`, not event number; rain duration metadata dropped from zarr (encoded in filename / documented in YAML)
 - SS time series NetCDF: `(event_type=3, year=954, event_id=5, timestep=3261)` — 954 years have ≥1 event (out of 1000 synthesized)
-- Integer variables `156, 171, 170, 155, 140, 141` in time series NetCDFs are rain gage/SWMM node IDs — meaning must be confirmed before I/O layer is designed
-- Roads, buildings, and sidewalks are raw (unclipped); see decision in `00_case_study_yaml_setup.md` on whether to clip on load vs. pre-clip
+- Integer variables `156, 171, 170, 155, 140, 141` in time series NetCDFs are rain gage/SWMM node IDs — meaning must be confirmed before I/O layer is designed (see `00_case_study_yaml_setup.md` checklist)
+- Roads, buildings, and sidewalks are raw (unclipped); **decision made**: clip on load via `read_shapefile(clip_to=watershed_gdf)` — see `00_case_study_yaml_setup.md` Decision 1
+- **Terminology**: "combined" = simulation with rain + surge drivers (filename convention); "compound" = phenomenon of flooding worsened by multiple simultaneous drivers (scientific term). These are not interchangeable — see `.prompts/philosophy.md` Terminology section
 
 **HydroShare Resource Organization** (target — will be finalized in Phase 6A):
 ```
 ss-fha-norfolk-case-study/
     model_results/
-        ss_tritonswmm.zarr
+        ss_tritonswmm_combined.zarr
         ss_tritonswmm_rainonly.zarr
         ss_tritonswmm_surgeonly.zarr
-        ss_triton_only.zarr
-        obs_tritonswmm.zarr          ← MISSING; must be sourced
-        design_storm_tritonswmm.zarr
+        ss_triton_only_combined.zarr
+        obs_tritonswmm_combined.zarr
+        design_storm_tritonswmm_combined.zarr
         design_storm_tritonswmm_rainonly.zarr
         design_storm_tritonswmm_surgeonly.zarr
     events/
@@ -410,17 +413,16 @@ ss-fha-norfolk-case-study/
         design_storm_combined.nc
         design_storm_rainonly.nc
         design_storm_surgeonly.nc
-        tide_gage_data.csv           ← MISSING; download from NOAA
-        empirical_rainfall_return_periods.csv    ← MISSING; derive in Phase 3C
-        empirical_water_level_return_periods.csv ← MISSING; derive in Phase 3C
+        # NOTE: empirical return period CSVs are pipeline OUTPUTS, not HydroShare inputs.
+        # They are written to output_dir/event_statistics/ by the event stats runner.
     geospatial/
         norfolk_wshed_epsg32147_state_plane_m.shp (+ companions)
-        Street_Centerline_-_City_of_Norfolk.shp (+ companions)
-        Sidewalk_-_City_of_Norfolk.shp (+ companions)
-        buildings_from_ms_github/va_buildings.shp (+ companions)
+        Street_Centerline_-_City_of_Norfolk.shp (+ companions)  # raw city-wide; clipped on load
+        Sidewalk_-_City_of_Norfolk.shp (+ companions)           # raw city-wide; clipped on load
+        buildings_from_ms_github/va_buildings.shp (+ companions) # raw statewide; clipped on load
         Parcel_Boundaries/Parcel_Boundaries.shp (+ companions)
         fema/100yr_depths_m.tif
-        aoi.shp (+ companions)       ← MISSING; locate from old project dirs
+        # No aoi.shp — spatial subsetting uses the watershed shapefile directly
 ```
 
 **Test data strategy**: Synthetic test data is generated programmatically in `tests/fixtures/test_case_builder.py`. The builder creates xarray Datasets, DataFrames, and GeoDataFrames that match the structure (dimensions, variables, dtypes, coordinate names) of the real HydroShare data. This ensures that code tested against synthetic data will also work with real case study data. Suggested test dimensions: 10x10 grid, 10 events, 5 bootstrap samples.
@@ -470,8 +472,8 @@ class SSFHAConfig(BaseModel):
     """
 
     # Analysis identity
-    fha_id: str                          # Unique ID for this FHA approach (e.g. "ssfha_compound")
-    fha_approach: Literal["ssfha", "bds", "mcds"]
+    fha_id: str                          # Unique ID for this FHA approach (e.g. "ssfha_combined")
+    fha_approach: Literal["ssfha", "bds"]
 
     # Project identification
     project_name: str
@@ -508,6 +510,9 @@ class SSFHAConfig(BaseModel):
     ppcct: PPCCTConfig | None = None
     flood_risk: FloodRiskConfig | None = None
 
+    # MCDS toggle — only valid when fha_approach="ssfha"; subsets design storms from this ensemble
+    toggle_mcds: bool = False            # See work chunk 00 Decision 3
+
     # Optional: compare this (baseline) analysis against alternative FHA approaches
     toggle_fha_comparison: bool = False
     alt_fha_analyses: list[Path] | None = None   # Required when toggle_fha_comparison=True
@@ -521,7 +526,7 @@ With sub-models:
 ```python
 class TritonOutputsConfig(BaseModel):
     """Paths to TRITON peak flood depth outputs for one FHA approach."""
-    compound: Path                         # Always required (primary simulation type)
+    combined: Path                         # Always required — rain+surge combined simulation
     observed: Path | None = None           # Required when toggle_ppcct=True
 
 class EventDataConfig(BaseModel):
@@ -784,15 +789,15 @@ Extract from `__utils.py`:
 #### Phase 3A: Workflow 1 -- `analysis/flood_hazard.py` + `runners/flood_hazard_runner.py`
 Replaces: `b1_analyze_triton_outputs_fld_prob_calcs.py`
 - Load TRITON outputs, validate event completeness
-- Compute flood probabilities by simulation type (compound, surge-only, rain-only, triton-only)
+- Compute flood probabilities by simulation type (combined, surge-only, rain-only, triton-only)
 - Produce flood probability zarrs indexed by return period
 
-Runner script: accepts `--config`, `--sim-type` (compound/surge/rain/triton) args.
+Runner script: accepts `--config`, `--sim-type` (combined/surgeonly/rainonly/triton_only) args.
 
 #### Phase 3B: Workflow 2 -- `analysis/uncertainty.py` + bootstrap runners
 Replaces: `c1_*` and `c1b_*`
 - `runners/bootstrap_runner.py`: Compute single bootstrap sample (Snakemake parallelizes across sample IDs)
-  - Args: `--config`, `--sample-id`, `--sim-type`
+  - Args: `--config`, `--sample-id`, `--sim-type` (combined/surgeonly/rainonly/triton_only)
 - `runners/bootstrap_combine_runner.py`: Combine all samples and compute quantiles
   - Args: `--config`, `--sim-type`
 
@@ -939,8 +944,8 @@ pytest tests/test_flood_probability.py::test_return_periods_match_scipy -v
 ### Phase 3 Validation
 ```bash
 # Runner script smoke tests
-python -m ss_fha.runners.flood_hazard_runner --config test_config.yaml --sim-type compound
-python -m ss_fha.runners.bootstrap_runner --config test_config.yaml --sample-id 0 --sim-type compound
+python -m ss_fha.runners.flood_hazard_runner --config test_config.yaml --sim-type combined
+python -m ss_fha.runners.bootstrap_runner --config test_config.yaml --sample-id 0 --sim-type combined
 
 # Integration test
 pytest tests/test_end_to_end.py -v

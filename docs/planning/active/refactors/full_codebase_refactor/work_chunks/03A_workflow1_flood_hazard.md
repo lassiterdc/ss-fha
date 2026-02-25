@@ -33,11 +33,11 @@ Implement Workflow 1 (Flood Hazard Assessment) as an analysis module and a Snake
    - Applies watershed mask (via `ss_fha.io.gis_io` + `ss_fha.core.geospatial`)
    - Calls `ss_fha.core.flood_probability` functions
    - Writes flood probability zarr outputs (via `ss_fha.io.zarr_io`)
-   - Supports multiple simulation types: compound, surge-only, rain-only, triton-only
+   - Supports multiple simulation types: combined, surge-only, rain-only, triton-only-combined
 
 3. `src/ss_fha/runners/__init__.py`
 4. `src/ss_fha/runners/flood_hazard_runner.py`:
-   - CLI entry point (argparse): `--config <yaml_path>` + `--sim-type <compound|surge_only|rain_only|triton_only>`
+   - CLI entry point (argparse): `--config <yaml_path>` + `--sim-type <combined|surge_only|rain_only|triton_only_combined>`
    - Logs to stdout (captured by Snakemake)
    - Calls `analysis.flood_hazard` functions
    - Writes completion marker to log (per philosophy.md log-based completion checks)
@@ -45,7 +45,7 @@ Implement Workflow 1 (Flood Hazard Assessment) as an analysis module and a Snake
 ### Key Design Decisions
 
 - **Per philosophy.md**: runner scripts log to stdout; Snakemake captures this as a logfile. Use structured log messages with timestamps.
-- **Log-based completion check**: the runner must emit a specific completion log line (e.g., `"COMPLETE: flood_hazard compound"`) that Snakemake rules can verify.
+- **Log-based completion check**: the runner must emit a specific completion log line (e.g., `"COMPLETE: flood_hazard combined"`) that Snakemake rules can verify.
 - **`--sim-type`** controls which TRITON output is loaded; the config provides the path for that sim type.
 - **Fail fast**: if the TRITON zarr path for the requested `--sim-type` is not in the config, raise `ConfigurationError` immediately.
 - **No QAQC plots in this chunk** — visualization is Phase 5. Toggle design for QAQC plots should be stubbed (see master plan assumption 4).

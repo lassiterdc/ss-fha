@@ -10,7 +10,7 @@ When a chunk is fully implemented and all checklist items are checked, move it t
 
 | File | Phase | Status |
 |------|-------|--------|
-| `00_case_study_yaml_setup.md` | 0 | Pending — create case study YAMLs and data inventory before any code |
+| `00_case_study_yaml_setup.md` | 0 | In progress — decisions recorded 2026-02-25; YAMLs not yet written |
 | `01A_exceptions_and_constants.md` | 1A | Pending |
 | `01B_pydantic_config_model.md` | 1B | Pending |
 | `01C_path_management.md` | 1C | Pending |

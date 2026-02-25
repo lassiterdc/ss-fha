@@ -34,7 +34,8 @@ Review the following documents before making any edits to plans or writing any c
 - **`n_years_synthesized` is a required top-level field on `SSFHAConfig`** — it is the total number of synthetic years in the weather model run (e.g., 1000 for Norfolk), including years that produced no events. It is NOT derived from the data: the time series only contains years with ≥1 event (954 for Norfolk), so reading `len(ds.year)` would give the wrong value. Users must supply this explicitly. It is the denominator for all return period calculations; a wrong value silently biases every result. There is no default.
 - **`n_years_observed` is a required field when `toggle_ppcct: true`** — it is the total number of years of observed record, including any years with no events. For Norfolk, all 18 observed years have ≥1 event, so `n_years_observed = 18 = len(obs_ds.year)`. However, other case studies may have observed years with no events, so this must be explicit for the same reason as `n_years_synthesized`. It is the denominator for observed return period calculations in PPCCT. There is no default.
 - **`serial` execution mode is removed** — only `local_concurrent` and `slurm`. Snakemake handles serialization via available resources.
-- **FHA comparison design (resolved)**: Each FHA approach is its own `SSFHAConfig` with a unique `fha_id` and `fha_approach` (`ssfha`, `bds`, `mcds`). The primary config optionally includes `alt_fha_analyses: list[Path]` pointing to alternative configs. `TritonOutputsConfig` only holds the `compound` path and the optional `observed` path for PPCCT — the surge-only/rain-only variants are separate FHA configs, not fields on a single `TritonOutputsConfig`. See the master plan "Multi-FHA Analysis Design" section.
+- **FHA comparison design (resolved)**: Each FHA approach is its own `SSFHAConfig` with a unique `fha_id` and `fha_approach` (`ssfha`, `bds`). The primary config optionally includes `alt_fha_analyses: list[Path]` pointing to alternative configs. `TritonOutputsConfig` holds the `combined` path (primary simulation type) and the optional `observed` path for PPCCT — the surge-only/rain-only variants are separate FHA configs, not fields on a single `TritonOutputsConfig`. See the master plan "Multi-FHA Analysis Design" section.
+- **MCDS is a toggle, not an `fha_approach`**: Because MCDS reuses the stochastic ensemble directly (no separate model inputs), it is implemented as `toggle_mcds: bool` on the primary SSFHA combined config rather than as a standalone FHA approach. A `@model_validator` must raise `ConfigurationError` if `toggle_mcds=True` when `fha_approach != "ssfha"`. See work chunk 00 Decision 3.
 - **`MeteorologicalConfig` (resolved)**: Removed entirely. Design storm creation is out of scope. Event statistics uses tide gage data and empirical return period CSVs, but these are referenced directly via `EventDataConfig`, not via a separate `MeteorologicalConfig`.
 
 ### Sub-models to implement
@@ -152,7 +153,7 @@ pytest tests/test_config.py::test_workflow1_only_minimal_inputs -v
 # Smoke test: load the norfolk_default.yaml template (with placeholder filling)
 python -c "
 from ss_fha.config.loader import load_config_from_dict
-d = {'project_name': 'test', 'project_dir': '/tmp/test', 'triton_outputs': {'compound': '/tmp/fake.zarr'}, 'event_data': {'sim_event_summaries': '/tmp/fake.csv'}, 'geospatial': {'watershed': '/tmp/fake.shp'}, 'execution': {'mode': 'local_concurrent'}}
+d = {'project_name': 'test', 'project_dir': '/tmp/test', 'triton_outputs': {'combined': '/tmp/fake.zarr'}, 'event_data': {'sim_event_summaries': '/tmp/fake.csv'}, 'geospatial': {'watershed': '/tmp/fake.shp'}, 'execution': {'mode': 'local_concurrent'}}
 cfg = load_config_from_dict(d)
 print(cfg.project_name)
 "
@@ -175,6 +176,9 @@ print(cfg.project_name)
 - [ ] Toggle validation accumulates errors before raising
 - [ ] `serial` execution mode removed from `ExecutionConfig`
 - [ ] No case-study-specific defaults in the model (EPSG, etc. are required fields)
+- [ ] `TritonOutputsConfig` uses field name `combined` (not `compound`) for the primary simulation zarr path
+- [ ] `fha_approach` is `Literal["ssfha", "bds"]` — `mcds` is NOT a separate approach; MCDS is `toggle_mcds: bool` on `SSFHAConfig`
+- [ ] `toggle_mcds` validator raises `ConfigurationError` if `toggle_mcds=True` and `fha_approach != "ssfha"`
 - [ ] All Phase 1B tests pass
 - [ ] Refactoring status block updated in `_old_code_to_refactor/__inputs.py`
 - [ ] `full_codebase_refactor.md` tracking table updated

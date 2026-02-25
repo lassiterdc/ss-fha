@@ -1,3 +1,22 @@
+## Terminology
+
+Consistent vocabulary is critical for clear communication between developer, AI, and future readers. The following terms have precise meanings in this codebase:
+
+| Term | Meaning | Usage |
+|------|---------|-------|
+| **Combined** | A simulation that includes *both* rainfall and storm tide as flood drivers | Simulation type label — zarr filenames, `fha_id`, config fields, code variables |
+| **Compound** | Flooding that is *worsened* by the simultaneous presence of multiple drivers — a phenomenon, not a simulation type | Scientific/descriptive use only (e.g., "compound flood hazard", "compound flooding") |
+| **Rain-only** | A simulation that includes only the rainfall driver (surge set to a constant background level) | Simulation type label |
+| **Surge-only** | A simulation that includes only the storm tide driver (rainfall excluded) | Simulation type label |
+| **TRITON-only** | A simulation using the TRITON 2D model without SWMM coupling for urban drainage | Simulation type label |
+| **BDS** | Basic Design Storm — a deterministic flood hazard approach using one event per return period | `fha_approach` value |
+| **MCDS** | Monte Carlo Design Storm — subsets design storms from the stochastic ensemble within a CI band around a target return period | Implemented as `toggle_mcds` on SSFHA config, not as a separate `fha_approach` |
+| **SSFHA** | Semicontinuous Simulation-based Flood Hazard Assessment — the primary method implemented here | `fha_approach: ssfha` |
+
+**Rule**: Never use "compound" to describe a simulation type (e.g., "compound simulation", "compound zarr"). Use "combined" instead. Use "compound" only when describing the *phenomenon* of compound flooding.
+
+---
+
 ## About this code base:
 
 - The primary purpose of this code base is computing flood hazard and flood hazard uncertainty using bootstrapping from 2D flood model results
