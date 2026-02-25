@@ -267,7 +267,7 @@ src/ss_fha/
 
 cases/
     norfolk_ssfha_comparison/      # Norfolk-specific parameters not on HydroShare
-        norfolk_study_area.yaml    # e.g., crs_epsg: 32147, study area bounds
+        system.yaml    # e.g., crs_epsg: 32147, study area bounds
 
 tests/
     conftest.py                    # Shared fixtures, platform detection
@@ -450,7 +450,7 @@ ss-fha-norfolk-case-study/
   - `DEFAULT_PLOTTING_POSITION_METHOD = "weibull"`
   - Variable name mappings, etc.
   - **Not included**: `DEFAULT_CRS_EPSG` (case-study-specific; goes in `cases/norfolk_ssfha_comparison/`) and `synthetic_years` (derived from weather data record length, not user-configured)
-- `cases/norfolk_ssfha_comparison/norfolk_study_area.yaml` -- Norfolk-specific parameters not in HydroShare (e.g. `crs_epsg: 32147`). This directory is the home for anything case-study-specific that isn't committed to HydroShare. Created in work chunk 00.
+- `cases/norfolk_ssfha_comparison/system.yaml` -- Norfolk-specific parameters not in HydroShare (e.g. `crs_epsg: 32147`). This directory is the home for anything case-study-specific that isn't committed to HydroShare. Created in work chunk 00.
 
 **Tests:**
 - `test_config.py::test_defaults_are_accessible` -- import and verify defaults exist with expected types

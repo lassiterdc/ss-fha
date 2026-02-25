@@ -103,9 +103,9 @@ Items that must be resolved before Phase 6 (case study validation). Track status
 
 ### Values Requiring Confirmation
 
-- [ ] **`n_years_synthesized: 1000`** — Record in `norfolk_ssfha_combined.yaml` (and all FHA variant YAMLs). This is the total number of synthetic years in the SS weather model run, including years with no events. The SS time series contains only 954 years (those with ≥1 event); 1000 is confirmed by `N_YEARS_SYNTHESIZED = 1000` in `__inputs.py`. This value is the denominator for all simulated return period calculations — it must be explicitly set in config and never inferred from data dimensions. See notes in 01B and 02B.
+- [ ] **`n_years_synthesized: 1000`** — Record in `analysis_ssfha_combined.yaml` (and all FHA variant YAMLs). This is the total number of synthetic years in the SS weather model run, including years with no events. The SS time series contains only 954 years (those with ≥1 event); 1000 is confirmed by `N_YEARS_SYNTHESIZED = 1000` in `__inputs.py`. This value is the denominator for all simulated return period calculations — it must be explicitly set in config and never inferred from data dimensions. See notes in 01B and 02B.
 
-- [ ] **`n_years_observed: 18`** — Record in `norfolk_ssfha_combined.yaml`. This is the total length of the observed record. For Norfolk, all 18 observed years have ≥1 event (confirmed: `obs_ds.year` has 18 values), so `len(obs_ds.year) == n_years_observed` happens to be true here. However other case studies may have event-free observed years, so this must always be set explicitly — never inferred from data dimensions. Used as the denominator for observed return period calculations in PPCCT. See notes in 01B and 02B.
+- [ ] **`n_years_observed: 18`** — Record in `analysis_ssfha_combined.yaml`. This is the total length of the observed record. For Norfolk, all 18 observed years have ≥1 event (confirmed: `obs_ds.year` has 18 values), so `len(obs_ds.year) == n_years_observed` happens to be true here. However other case studies may have event-free observed years, so this must always be set explicitly — never inferred from data dimensions. Used as the denominator for observed return period calculations in PPCCT. See notes in 01B and 02B.
 
 ### Files Present but Requiring Verification or Decisions
 
@@ -125,9 +125,7 @@ Items that must be resolved before Phase 6 (case study validation). Track status
 
 - [x] **Confirm design storm `rain_duration_h`** — **RESOLVED**: The combined design storm uses 24-hr rain duration; the surge-only design storm uses 6-hr duration. Only the 24-hr combined storm is in scope for the BDS comparison (corroborated by `TARGET_DESIGN_STORM_DURATION_HRS_FOR_COMPARISON = 24` in `__inputs.py`). The `rain_duration_h` metadata coordinate has been dropped from the design storm zarrs (encoding in filename is sufficient); duration is documented in YAML config comments.
 
-- [ ] **Confirm `RETURN_PERIODS` scope**
-  - `__inputs.py` has `RETURN_PERIODS = [1, 2, 10, 100]` with the comment "this can't be changed because this is all that is available for the tide gage return periods." The design storm zarrs confirm `return_pd_yrs = [1, 2, 10, 100]`. This should be a default in `config/defaults.py` but users must understand it is constrained by upstream data.
-  - Action: Confirm and document in `norfolk_study_area.yaml` with a clear comment about the constraint.
+- [x] **Confirm `RETURN_PERIODS` scope** — **RESOLVED**: `[1, 2, 10, 100]` confirmed from design storm zarr `return_pd_yrs` dimension. Set explicitly in each analysis config YAML. No constraint comment needed.
 
 - [x] **`ppct_alpha` / `FLD_RTRN_PD_ALPHA` classification** — **RESOLVED** (Decision 5 below): Both are generic analysis defaults → `config/defaults.py`. `ppct_alpha = 0.05` is the standard hypothesis testing significance level. `FLD_RTRN_PD_ALPHA = 0.1` (90% CI) is chosen to match NOAA Atlas 14 — a methodological convention, not Norfolk-specific.
 
@@ -153,17 +151,19 @@ Canonical `fha_id` strings (used as Snakemake wildcards and output directory nam
 
 | Config file | `fha_id` | `fha_approach` |
 |-------------|----------|----------------|
-| `norfolk_ssfha_combined.yaml` | `ssfha_combined` | `ssfha` |
-| `norfolk_ssfha_rainonly.yaml` | `ssfha_rainonly` | `ssfha` |
-| `norfolk_ssfha_surgeonly.yaml` | `ssfha_surgeonly` | `ssfha` |
-| `norfolk_ssfha_triton_only_combined.yaml` | `ssfha_triton_only_combined` | `ssfha` |
-| `norfolk_bds.yaml` | `bds_combined_24hr` | `bds` |
+| `analysis_ssfha_combined.yaml` | `ssfha_combined` | `ssfha` |
+| `analysis_ssfha_rainonly.yaml` | `ssfha_rainonly` | `ssfha` |
+| `analysis_ssfha_surgeonly.yaml` | `ssfha_surgeonly` | `ssfha` |
+| `analysis_ssfha_triton_only_combined.yaml` | `ssfha_triton_only_combined` | `ssfha` |
+| `analysis_bds_combined.yaml` | `bds_combined_24hr` | `bds` |
+| `analysis_bds_rainonly.yaml` | `bds_rainonly_24hr` | `bds` |
+| `analysis_bds_surgeonly.yaml` | `bds_surgeonly_6hr` | `bds` |
 
 ### Decision 3: MCDS scope — **RESOLVED: implement as toggle on combined SSFHA config**
 
 **Context**: The current MCDS implementation subsets Monte Carlo design storms from within the stochastic ensemble — it reuses `ss_tritonswmm_combined.zarr` directly, with no separate model inputs. MCDS is not a fully independent FHA approach; it is a post-processing variant of the SSFHA combined run.
 
-**Decision**: MCDS is in scope and is implemented as `toggle_mcds: bool` on the primary combined SSFHA config (`norfolk_ssfha_combined.yaml`). It does NOT get its own `fha_approach: mcds` YAML or `fha_id`, because it shares all inputs with the SSFHA combined run. The toggle triggers an additional analysis step within Phase 3E (design comparison).
+**Decision**: MCDS is in scope and is implemented as `toggle_mcds: bool` on the primary combined SSFHA config (`analysis_ssfha_combined.yaml`). It does NOT get its own `fha_approach: mcds` YAML or `fha_id`, because it shares all inputs with the SSFHA combined run. The toggle triggers an additional analysis step within Phase 3E (design comparison).
 
 **MCDS formulations in scope** (from old code): multivariate AND, multivariate OR, univariate. All three are implemented; outputs are `mcds_return_pd_floods_multivar.nc`, `mcds_return_pd_floods_multivar_OR.nc`, `mcds_return_pd_floods_univar.nc`.
 
@@ -200,23 +200,53 @@ This parameter is a fixed sea water level used in rain-only simulations within T
 
 **Upstream data note**: `_work/exporting_case_study_data_files.py` uses `event_type=["compound"]` when selecting from the source zarr. This refers to the upstream coordinate label in the original simulation results — it is acceptable to keep as-is since it reads data, not defines our naming convention. The output zarr is correctly named `ss_tritonswmm_combined.zarr`.
 
+### Decision 7: Geospatial inputs at study area level — **RESOLVED**
+
+**Context**: Geospatial files (watershed, roads, buildings, sidewalks, parcels, FEMA raster) are identical across all FHA analyses for a given study area. Repeating them in every FHA config YAML creates maintenance risk and redundancy.
+
+**Decision**: Geospatial inputs are defined once in `system.yaml`. FHA config YAMLs reference the study area config but do not contain their own geospatial section. The study area config is the single source of truth for all location-specific files.
+
+**Rationale**: Geospatial files are a property of the study area (where the simulation domain is), not of the analysis methodology (how flood hazard is computed). This distinction aligns with the `study_area_config` reference pattern already used for `crs_epsg`, `n_years_synthesized`, etc.
+
+**Impact on 01B**: `GeospatialConfig` will be a field on the study area Pydantic model, not on `SSFHAConfig`. The config loader must resolve the study area config path and make its geospatial fields available to the FHA analysis.
+
+### Decision 8: One zarr output per BDS config — **RESOLVED**
+
+**Context**: The original `norfolk_bds.yaml` grouped all three design storm driver variants (combined, rain-only, surge-only) into a single config with a `design_storm_outputs` dict. This violated the one-FHA-result-per-config principle.
+
+**Decision**: Split into three separate BDS configs: `analysis_bds_combined.yaml`, `analysis_bds_rainonly.yaml`, `analysis_bds_surgeonly.yaml`. Each has a single `design_storm_output` path and a single `design_storm_timeseries` path, exactly analogous to how SSFHA configs each hold a single `triton_outputs.combined` path.
+
+**Impact on 01B**: `BdsConfig` (or the BDS branch of the discriminated union) needs only a single `design_storm_output: Path` field and a single `design_storm_timeseries: Path` field, not a nested dict of variants.
+
+### Decision 9: Weather record lengths and return periods at analysis level — **RESOLVED**
+
+**Context**: `n_years_synthesized`, `n_years_observed`, and `return_periods` were initially placed in `system.yaml`. However, these are properties of the specific weather datasets and upstream data used in an analysis, not of the geographic study area. A study area could in principle be analyzed with different weather model runs of different lengths.
+
+**Decision**: All three fields belong in the FHA analysis configs:
+- `n_years_synthesized` and `return_periods` → all SSFHA configs and all BDS configs
+- `n_years_observed` → combined SSFHA config only (PPCCT is the only workflow that uses observed data; it only runs on the combined analysis)
+
+`system.yaml` now contains only the CRS and geospatial file paths — both are genuine properties of the fixed geographic domain.
+
+**Impact on 01B**: `n_years_synthesized`, `n_years_observed`, and `return_periods` are fields on `SSFHAConfig` / `BdsConfig`, not on the study area model.
+
 ---
 
 ## Task Understanding
 
 ### Requirements
 
-1. **`cases/norfolk_ssfha_comparison/norfolk_study_area.yaml`** — Norfolk-specific scalar parameters not in HydroShare and not in generic code defaults:
+1. **`cases/norfolk_ssfha_comparison/system.yaml`** — Norfolk-specific scalar parameters not in HydroShare and not in generic code defaults:
    - `crs_epsg: 32147` (confirmed from watershed shapefile)
    - Any other site-specific scalars identified during `__inputs.py` audit
 
-2. **`cases/norfolk_ssfha_comparison/norfolk_ssfha_combined.yaml`** — Primary SS-FHA config (combined drivers). All paths point to the local staging directory. Includes `toggle_mcds: true` to enable Monte Carlo design storm analysis (subsets from this ensemble). Use `# TODO: missing — [description]` for absent files.
+2. **`cases/norfolk_ssfha_comparison/analysis_ssfha_combined.yaml`** — Primary SS-FHA config (combined drivers). All paths point to the local staging directory. Includes `toggle_mcds: true` to enable Monte Carlo design storm analysis (subsets from this ensemble). Use `# TODO: missing — [description]` for absent files.
 
-3. **`cases/norfolk_ssfha_comparison/norfolk_ssfha_rainonly.yaml`** — Rain-only SS-FHA config. Standalone YAML (no YAML anchors or inheritance).
+3. **`cases/norfolk_ssfha_comparison/analysis_ssfha_rainonly.yaml`** — Rain-only SS-FHA config. Standalone YAML (no YAML anchors or inheritance).
 
-4. **`cases/norfolk_ssfha_comparison/norfolk_ssfha_surgeonly.yaml`** — Surge-only SS-FHA config.
+4. **`cases/norfolk_ssfha_comparison/analysis_ssfha_surgeonly.yaml`** — Surge-only SS-FHA config.
 
-5. **`cases/norfolk_ssfha_comparison/norfolk_ssfha_triton_only_combined.yaml`** — TRITON-only (no SWMM coupling) config.
+5. **`cases/norfolk_ssfha_comparison/analysis_ssfha_triton_only_combined.yaml`** — TRITON-only (no SWMM coupling) config.
 
 6. **`cases/norfolk_ssfha_comparison/norfolk_bds.yaml`** — Basic design storm comparison config (`fha_approach: bds`).
 
@@ -285,9 +315,9 @@ toggle_flood_risk: true
 toggle_design_comparison: true
 
 alt_fha_analyses:
-  - cases/norfolk_ssfha_comparison/norfolk_ssfha_rainonly.yaml
-  - cases/norfolk_ssfha_comparison/norfolk_ssfha_surgeonly.yaml
-  - cases/norfolk_ssfha_comparison/norfolk_ssfha_triton_only_combined.yaml
+  - cases/norfolk_ssfha_comparison/analysis_ssfha_rainonly.yaml
+  - cases/norfolk_ssfha_comparison/analysis_ssfha_surgeonly.yaml
+  - cases/norfolk_ssfha_comparison/analysis_ssfha_triton_only_combined.yaml
   - cases/norfolk_ssfha_comparison/norfolk_bds.yaml
 ```
 
@@ -300,11 +330,11 @@ alt_fha_analyses:
 | File | Purpose |
 |------|---------|
 | `cases/norfolk_ssfha_comparison/README.md` | Directory purpose, YAML inventory, data gaps, decisions |
-| `cases/norfolk_ssfha_comparison/norfolk_study_area.yaml` | Norfolk-specific scalar parameters (EPSG, etc.) |
-| `cases/norfolk_ssfha_comparison/norfolk_ssfha_combined.yaml` | Primary SS-FHA config (combined drivers) with `toggle_mcds: true` and local staging paths |
-| `cases/norfolk_ssfha_comparison/norfolk_ssfha_rainonly.yaml` | Rain-only SS-FHA config |
-| `cases/norfolk_ssfha_comparison/norfolk_ssfha_surgeonly.yaml` | Surge-only SS-FHA config |
-| `cases/norfolk_ssfha_comparison/norfolk_ssfha_triton_only_combined.yaml` | TRITON-only (no SWMM coupling) config |
+| `cases/norfolk_ssfha_comparison/system.yaml` | Norfolk-specific scalar parameters (EPSG, etc.) |
+| `cases/norfolk_ssfha_comparison/analysis_ssfha_combined.yaml` | Primary SS-FHA config (combined drivers) with `toggle_mcds: true` and local staging paths |
+| `cases/norfolk_ssfha_comparison/analysis_ssfha_rainonly.yaml` | Rain-only SS-FHA config |
+| `cases/norfolk_ssfha_comparison/analysis_ssfha_surgeonly.yaml` | Surge-only SS-FHA config |
+| `cases/norfolk_ssfha_comparison/analysis_ssfha_triton_only_combined.yaml` | TRITON-only (no SWMM coupling) config |
 | `cases/norfolk_ssfha_comparison/norfolk_bds.yaml` | Basic design storm comparison config (`fha_approach: bds`) |
 
 ### Modified Files
@@ -343,16 +373,16 @@ No automated tests. Human review:
 
 ## Definition of Done
 
-- [ ] `cases/norfolk_ssfha_comparison/README.md` created
-- [ ] `cases/norfolk_ssfha_comparison/norfolk_study_area.yaml` created
-- [ ] `cases/norfolk_ssfha_comparison/norfolk_ssfha_combined.yaml` created (primary config, with `toggle_mcds: true`)
-- [ ] `cases/norfolk_ssfha_comparison/norfolk_ssfha_rainonly.yaml` created
-- [ ] `cases/norfolk_ssfha_comparison/norfolk_ssfha_surgeonly.yaml` created
-- [ ] `cases/norfolk_ssfha_comparison/norfolk_ssfha_triton_only_combined.yaml` created
-- [ ] `cases/norfolk_ssfha_comparison/norfolk_bds.yaml` created
-- [ ] All 6 Decisions documented in this file
-- [ ] All data tracking checklist items have status and action assigned
-- [ ] Each YAML passes `yaml.safe_load()` without error
-- [ ] `full_codebase_refactor.md` Phase 0 section updated
-- [ ] `01B` and `01D` planning docs updated with relevant notes from decisions made here
-- [ ] **Move this document to `implemented/` once all boxes above are checked**
+- [x] `cases/norfolk_ssfha_comparison/README.md` created
+- [x] `cases/norfolk_ssfha_comparison/system.yaml` created
+- [x] `cases/norfolk_ssfha_comparison/analysis_ssfha_combined.yaml` created (primary config, with `toggle_mcds: true`)
+- [x] `cases/norfolk_ssfha_comparison/analysis_ssfha_rainonly.yaml` created
+- [x] `cases/norfolk_ssfha_comparison/analysis_ssfha_surgeonly.yaml` created
+- [x] `cases/norfolk_ssfha_comparison/analysis_ssfha_triton_only_combined.yaml` created
+- [x] `cases/norfolk_ssfha_comparison/norfolk_bds.yaml` created
+- [x] All 6 Decisions documented in this file
+- [x] All data tracking checklist items have status and action assigned
+- [x] Each YAML passes `yaml.safe_load()` without error (confirmed 2026-02-25)
+- [x] `full_codebase_refactor.md` Phase 0 section updated (was already current from decisions phase)
+- [x] `01B` and `01D` planning docs updated with relevant notes from decisions made here
+- [x] **Move this document to `implemented/` once all boxes above are checked** — moved 2026-02-25

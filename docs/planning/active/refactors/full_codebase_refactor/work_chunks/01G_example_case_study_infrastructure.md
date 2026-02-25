@@ -30,7 +30,7 @@ Review the following documents before making any edits to plans or writing any c
 
 3. `src/ss_fha/examples/config_templates/norfolk_default.yaml` — complete YAML template with `{{placeholder}}` syntax for paths. During local development, placeholders are filled with paths into `/mnt/d/Dropbox/_GradSchool/repos/ss-fha/hydroshare_data`. On HPC, they point to the HydroShare-downloaded paths.
 
-4. `cases/norfolk_ssfha_comparison/` — **already created in work chunk 00**. The README and all YAML files (including `norfolk_study_area.yaml`) exist. This chunk does not re-create them. Verify they are present; if any are missing, chunk 00 was not completed.
+4. `cases/norfolk_ssfha_comparison/` — **already created in work chunk 00**. The README and all YAML files (including `system.yaml`) exist. This chunk does not re-create them. Verify they are present; if any are missing, chunk 00 was not completed.
 
 ### Key Design Decisions
 
@@ -42,7 +42,7 @@ Review the following documents before making any edits to plans or writing any c
 
 - `from ss_fha.examples.case_study_catalog import NORFOLK_HYDROSHARE_RESOURCE_ID` works and raises clearly if called
 - `config_templates/norfolk_default.yaml` is complete and passes template filling with a test path substitution
-- `cases/norfolk_ssfha_comparison/norfolk_study_area.yaml` exists (created in chunk 00) with EPSG and other Norfolk-specific parameters
+- `cases/norfolk_ssfha_comparison/system.yaml` exists (created in chunk 00) with EPSG and other Norfolk-specific parameters
 - Unit tests for template filling pass without network access
 
 ---
@@ -90,7 +90,7 @@ pytest tests/ -k "template" -v
 python -c "from ss_fha.examples.case_study_catalog import NORFOLK_HYDROSHARE_RESOURCE_ID; print('OK')"
 
 # Smoke test: cases/norfolk_ssfha_comparison config is valid YAML
-python -c "import yaml; yaml.safe_load(open('cases/norfolk_ssfha_comparison/norfolk_study_area.yaml')); print('OK')"
+python -c "import yaml; yaml.safe_load(open('cases/norfolk_ssfha_comparison/system.yaml')); print('OK')"
 ```
 
 ---

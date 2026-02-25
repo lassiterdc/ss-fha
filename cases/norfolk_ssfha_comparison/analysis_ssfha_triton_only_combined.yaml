@@ -1,0 +1,53 @@
+# PROVISIONAL — field names subject to change when SSFHAConfig (01B) is implemented.
+# Validate all fields against SSFHAConfig when 01B is complete.
+# 01B Definition of Done must include loading this file as a smoke test.
+#
+# TRITON-only (no SWMM coupling), combined drivers: both rainfall and storm tide active,
+# but the SWMM urban drainage model is NOT coupled — 2D TRITON model only.
+# Comparison with the SWMM-coupled combined config quantifies the contribution of
+# urban drainage coupling to flood hazard estimates.
+# This config is referenced as an alternative analysis by norfolk_ssfha_combined.yaml.
+
+fha_id: ssfha_triton_only_combined
+fha_approach: ssfha
+project_name: norfolk_ssfha_comparison
+study_area_config: cases/norfolk_ssfha_comparison/system.yaml
+
+output_dir: outputs/norfolk_ssfha_comparison/
+
+# --- Weather record lengths ---
+n_years_synthesized: 1000  # Same weather model run as the combined analysis.
+                            # Denominator for all simulated return period calculations.
+                            # DO NOT infer from len(ds.year) — that gives 954, not 1000.
+
+# --- Return periods ---
+return_periods: [1, 2, 10, 100]
+
+# --- TRITON model outputs ---
+# TRITON-only combined zarr: dims (x:526, y:513, event_iloc:3798), data var: max_wlevel_m.
+# Same grid as TRITON+SWMM zarrs. No observed TRITON-only zarr (PPCCT not applicable).
+triton_outputs:
+  combined: /mnt/d/Dropbox/_GradSchool/repos/ss-fha/hydroshare_data/model_results/ss_triton_only_combined.zarr
+
+# --- Monte Carlo Design Storm toggle ---
+# Not applicable — MCDS is only meaningful for the primary coupled combined analysis.
+toggle_mcds: false
+
+# --- Event data ---
+# Same event files as the combined analysis — the 3,798 SS events are shared.
+event_data:
+  sim_event_summaries: /mnt/d/Dropbox/_GradSchool/repos/ss-fha/hydroshare_data/events/ss_simulation_summaries.csv
+  sim_event_timeseries: /mnt/d/Dropbox/_GradSchool/repos/ss-fha/hydroshare_data/events/ss_simulation_time_series.nc
+  sim_event_iloc_mapping: /mnt/d/Dropbox/_GradSchool/repos/ss-fha/hydroshare_data/events/ss_event_iloc_mapping.csv
+  # obs_event files omitted — PPCCT not run (no observed TRITON-only zarr).
+
+# --- Workflow toggles ---
+toggle_uncertainty: true
+toggle_ppcct: false        # No observed TRITON-only zarr — PPCCT not applicable.
+toggle_flood_risk: true
+toggle_design_comparison: false  # Comparison is driven by the primary combined config.
+
+# --- Execution ---
+execution:
+  mode: local_concurrent
+  max_workers: 4

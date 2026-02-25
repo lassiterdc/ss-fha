@@ -1,0 +1,45 @@
+# PROVISIONAL — field names subject to change when SSFHAConfig (01B) is implemented.
+# Validate all fields against SSFHAConfig when 01B is complete.
+# study_area YAMLs hold parameters that are fixed properties of the geographic
+# study area — independent of any particular analysis method or weather dataset.
+# This includes the CRS and all geospatial input files.
+# Weather record lengths (n_years_synthesized, n_years_observed) and return periods
+# belong in the analysis configs that use them, not here.
+
+study_area_id: norfolk_va
+
+# --- Coordinate Reference System ---
+crs_epsg: 32147  # EPSG:32147 — Virginia State Plane South (meters)
+                 # Confirmed from norfolk_wshed_epsg32147_state_plane_m.shp (2026-02-25)
+                 # All geospatial I/O (shapefile reads, zarr grid registration) must
+                 # reproject to this CRS.
+
+# --- Geospatial inputs ---
+# Defined at the study area level because these files are shared by all FHA analyses
+# for this case study. Raw (unclipped) files are accepted — gis_io.read_shapefile
+# clips to the watershed polygon on load via clip_to argument (Decision 1, 2026-02-25).
+# If clipping is expensive (especially va_buildings.shp — statewide), the clip may be
+# promoted to a dedicated Snakemake pre-processing rule (01D implementation concern).
+geospatial:
+  watershed: /mnt/d/Dropbox/_GradSchool/repos/ss-fha/hydroshare_data/geospatial/norfolk_wshed_epsg32147_state_plane_m.shp
+  # CRS: EPSG:32147 (confirmed). Single polygon. Bounds ~3696718–3698614 E, 1059893–1061741 N.
+
+  roads: /mnt/d/Dropbox/_GradSchool/repos/ss-fha/hydroshare_data/geospatial/Street_Centerline_-_City_of_Norfolk.shp
+  # Raw city-wide. CRS: TODO — verify before Phase 6. Clipped to watershed on load.
+
+  sidewalks: /mnt/d/Dropbox/_GradSchool/repos/ss-fha/hydroshare_data/geospatial/Sidewalk_-_City_of_Norfolk.shp
+  # Raw city-wide. CRS: TODO — verify before Phase 6. Clipped to watershed on load.
+
+  buildings: /mnt/d/Dropbox/_GradSchool/repos/ss-fha/hydroshare_data/geospatial/buildings_from_ms_github/va_buildings.shp
+  # Raw statewide (Virginia MS ML footprints). CRS: TODO — verify before Phase 6.
+  # Clipped to watershed on load. Consider Snakemake rule for expensive clip.
+
+  parcels: /mnt/d/Dropbox/_GradSchool/repos/ss-fha/hydroshare_data/geospatial/Parcel_Boundaries/Parcel_Boundaries.shp
+  # Clipping status unknown. CRS: TODO — verify before Phase 6.
+
+  fema_100yr_depths: /mnt/d/Dropbox/_GradSchool/repos/ss-fha/hydroshare_data/geospatial/fema/100yr_depths_m.tif
+  # FEMA 100-yr flood depth raster (meters). CRS: TODO — verify before Phase 6.
+  # Used for design storm comparison (Workflow 5).
+
+  # No aoi.shp — spatial subsetting uses the watershed shapefile directly.
+  # SUBAREAS_FOR_COMPUTING_IMPACT_RETURN_PDS was watershed-only in old code.

@@ -1,0 +1,37 @@
+# PROVISIONAL — field names subject to change when SSFHAConfig (01B) is implemented.
+# Validate all fields against SSFHAConfig when 01B is complete.
+# 01B Definition of Done must include loading this file as a smoke test.
+#
+# Basic Design Storm (BDS), rain-only driver: deterministic flood hazard using one
+# design storm event per return period. 24-hr rain duration. Storm tide excluded.
+# No stochastic ensemble; no bootstrap uncertainty; no PPCCT.
+# This config is referenced as an alternative analysis by norfolk_ssfha_combined.yaml.
+
+fha_id: bds_rainonly_24hr
+fha_approach: bds
+project_name: norfolk_ssfha_comparison
+study_area_config: cases/norfolk_ssfha_comparison/system.yaml
+
+output_dir: outputs/norfolk_ssfha_comparison/
+
+# --- Return periods ---
+return_periods: [1, 2, 10, 100]
+
+# --- Design storm model output ---
+# Rain-only zarr: dims (return_pd_yrs:4, x:526, y:513), data var: max_wlevel_m.
+# return_pd_yrs = [1, 2, 10, 100]. Rain duration (24-hr) documented here.
+design_storm_output: /mnt/d/Dropbox/_GradSchool/repos/ss-fha/hydroshare_data/model_results/design_storm_tritonswmm_rainonly.zarr
+
+# --- Design storm time series ---
+design_storm_timeseries: /mnt/d/Dropbox/_GradSchool/repos/ss-fha/hydroshare_data/events/design_storm_rainonly.nc
+
+# --- Workflow toggles ---
+toggle_uncertainty: false
+toggle_ppcct: false
+toggle_flood_risk: true
+toggle_design_comparison: false
+
+# --- Execution ---
+execution:
+  mode: local_concurrent
+  max_workers: 4

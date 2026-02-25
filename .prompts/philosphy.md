@@ -1,6 +1,17 @@
 ## Terminology
 
-Consistent vocabulary is critical for clear communication between developer, AI, and future readers. The following terms have precise meanings in this codebase:
+Consistent vocabulary is critical for clear communication between developer, AI, and future readers. The following terms have precise meanings in this codebase.
+
+### System vs. Analysis
+
+These terms align with TRITON-SWMM_toolkit's `system_config` / `analysis_config` distinction:
+
+| Term | Meaning | Config file pattern |
+|------|---------|---------------------|
+| **System** | The fixed physical and geographic context for a case study — the spatial domain, CRS, and all geospatial input files. Shared across all analyses of the same study area. | `system.yaml` |
+| **Analysis** | A specific flood hazard computation layered on top of a system — the FHA method, model output inputs, weather record parameters, workflow toggles, and execution settings. Multiple analyses can share one system. | `analysis_<id>.yaml` |
+
+**Rule**: Parameters that belong to the geographic domain go in the system config. Parameters that describe a specific computation go in the analysis config. When in doubt: if two analyses of the same study area would always share the value, it's often a system parameter; if they could differ, it's an analysis parameter.
 
 | Term | Meaning | Usage |
 |------|---------|-------|
