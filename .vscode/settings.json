@@ -1,3 +1,4 @@
 {
-  "python.defaultInterpreterPath": "/home/dcl3nd/miniconda3/envs/ss-fha/bin/python"
+  "python.defaultInterpreterPath": "/home/dcl3nd/miniconda3/envs/ss-fha/bin/python",
+  "python.terminal.activateEnvironment": true
 }
