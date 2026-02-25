@@ -3,6 +3,10 @@
 - The primary purpose of this code base is computing flood hazard and flood hazard uncertainty using bootstrapping from 2D flood model results
 - There is also ground work laid for deeper analyses into shape-file defined subareas and flood risk quantification (using road and building shapefiles) that is currently a lower priority, but the base functionality is here
 - Visualizing flood hazard and flood hazard uncertainty is also a core functionality
+- **Critical context**: This code base is in the middle of a refactoring documented in docs/planning/active/refactors/full_codebase_refactor.md. All code decisions and plans should:
+    - Reference full_codebase_refactor.md in decisions
+    - Propose changes to full_codebase_refactor.md if appropriate
+    - Keep full_codebase_refactor.md up to date if any changes are made that are relevant to the document
 
 ## Development Philosophy
 
