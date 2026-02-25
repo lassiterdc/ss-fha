@@ -1,0 +1,67 @@
+# to run:
+# if environment already exists, first run:
+# conda deactivate
+# conda env remove -n triton_swmm_toolkit
+# then:
+# either:
+  # clean install, no use of :
+    # conda create -n triton_swmm_toolkit python=3.11 --no-default-packages
+    # conda activate triton_swmm_toolkit
+    # export PYTHONNOUSERSITE=1
+    # conda env update -f environment.yaml
+  # create directly from environment yaml
+    # module purge
+    # module load {conda app, e.g., miniforge}
+    # conda env create -f environment.yaml
+    # conda (or source) activate triton_swmm_toolkit
+# to use development version if git cloned:
+  # python -m pip install -e .
+name: triton_swmm_toolkit
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.11
+  - snakemake
+  - typer
+  - pydantic
+  - pyyaml
+  - zarr
+  - netcdf4
+  - scipy
+  - pydap
+  - h5netcdf
+  - cftime
+  - bottleneck
+  - dask
+  - matplotlib
+  - seaborn
+  - sparse
+  - pint
+  - bagit
+  - openpyxl
+  # geospatial packages
+  - rioxarray
+  - cartopy
+  - geopandas
+  - fiona
+  - pyproj
+  - shapely
+  # other stuff
+  - coverage
+  - pytest
+  - ruff
+  - ty
+  - ipdb
+  - ipykernel
+  - pip
+  - pip:
+      - hsclient
+      - pyswmm
+      - swmmio
+      - tabulate
+      - notebook
+      - jupyter_server
+      - ipywidgets
+      - snakemake-executor-plugin-slurm
+      - snakemake-storage-plugin-fs

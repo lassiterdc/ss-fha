@@ -86,10 +86,10 @@ exclude_also = [
     "if typing.TYPE_CHECKING:",
     "@overload",
     "@typing.overload",
-    "class .*\\bProtocol\\):",
-    "@(abc\\.)?abstractmethod",
+    "class .*//bProtocol//):",
+    "@(abc//.)?abstractmethod",
     "raise NotImplementedError",
-    "\\.\\.\\.",
+    "//.//.//.",
 ]
 
 [tool.uv]
@@ -99,4 +99,4 @@ default-groups = ["dev"]
 
 [tool.esbonio.sphinx]
 buildCommand = ["sphinx-build", "-b", "html", "docs", "docs/_build"]
-pythonCommand = ["C:\Users\Daniel\Miniconda3\envs\ss-fha\python.exe"]
+pythonCommand = ["/home/dcl3nd/miniconda3/envs/ss-fha/bin/python"]
