@@ -265,7 +265,7 @@ src/ss_fha/
             norfolk_default.yaml
 
 cases/
-    norfolk/                       # Norfolk-specific parameters not on HydroShare
+    norfolk_ssfha_comparison/      # Norfolk-specific parameters not on HydroShare
         norfolk_study_area.yaml    # e.g., crs_epsg: 32147, study area bounds
 
 tests/
@@ -340,7 +340,9 @@ Additionally, maintain a tracking table in this planning document (updated after
 
 ### Phase 0: Input Data Inventory and Local Data Staging
 
-**Goal**: Identify every external input file and stage it locally. HydroShare upload and download infrastructure are deferred until just before HPC testing (see Phase 6A).
+**Goal**: Identify every external input file, stage it locally, and write case study config YAMLs that make data gaps and design decisions explicit before implementation begins.
+
+**Work chunk**: `00_case_study_yaml_setup.md` — **complete this before 01A**.
 
 **Local staging directory**: `/mnt/d/Dropbox/_GradSchool/repos/ss-fha/hydroshare_data`
 
@@ -348,58 +350,77 @@ This directory holds data *intended* for eventual HydroShare upload. It may be i
 
 **All case-study-specific data will eventually go to HydroShare** (nothing committed to git). Synthetic test data is generated programmatically in tests and must match the HydroShare data structure. During local development, configs point directly to the local staging directory; on HPC, they point to the downloaded HydroShare data.
 
-**External Input Files Required** (based on `__inputs.py` and script analysis, design storm scripts excluded):
+**Staged Data Inventory** (inspected 2026-02-25; see `00_case_study_yaml_setup.md` for full detail):
 
-| File | Type | Size Category | Source | Used By Workflow(s) |
-|------|------|--------------|--------|---------------------|
-| TRITON simulation peak flood depth outputs (compound) | Zarr | Large (multi-GB) | TRITON-SWMM_toolkit | 1, 2, 4 |
-| TRITON simulation peak flood depth outputs (surge-only) | Zarr | Large | TRITON-SWMM_toolkit | 1, 2 |
-| TRITON simulation peak flood depth outputs (rain-only) | Zarr | Large | TRITON-SWMM_toolkit | 1, 2 |
-| TRITON-only simulation peak flood depth outputs | Zarr | Large | TRITON-SWMM_toolkit | 1, 2 |
-| TRITON observed event peak flood depth outputs | Zarr | Large | TRITON-SWMM_toolkit | 3 |
-| TRITON design storm peak flood depth outputs | Zarr | Large | TRITON-SWMM_toolkit | Design comparison |
-| Simulation event summaries CSV | CSV | Small (~100KB) | TRITON-SWMM_toolkit | 1, 2, 3 |
-| Observed event summaries CSV | CSV | Small (~100KB) | TRITON-SWMM_toolkit | 3 |
-| Simulation time series (per-event rainfall, water level) | NetCDF/Zarr | Medium-Large | TRITON-SWMM_toolkit | Event statistics |
-| NOAA tide gage data (water level + surge) | CSV | Small-Medium | NOAA Tides & Currents | Event statistics |
-| Empirical rainfall return period curves | CSV | Small | Computed from ensemble | Event statistics |
-| Empirical water level return period curves | CSV | Small | Computed from ensemble | Event statistics |
-| Watershed boundary shapefile | Shapefile | Small | User-defined | 1, 2, 3, 4 |
-| AOI (area of interest) shapefile | Shapefile | Small | User-defined | 4 |
-| Roads shapefile (clipped to study area) | Shapefile | Small-Medium | User-defined | 4 |
-| Buildings shapefile | Shapefile | Small-Medium | User-defined | 4 |
-| Parcels shapefile | Shapefile | Small-Medium | User-defined | 4 |
-| Sidewalks shapefile | Shapefile | Small-Medium | User-defined | 4 |
-| FEMA 100-yr flood depth raster | GeoTIFF | Medium | FEMA NFHL | 4 (comparison) |
-| Event classification table | CSV | Small-Medium | Computed from event summaries | Event statistics |
-| Constant head boundary condition value | Scalar (in config) | N/A | From TRITON-SWMM_toolkit | Config |
+| File (in staging dir) | Type | Staged Name | Used By | Status |
+|------|------|-------------|---------|--------|
+| SS compound TRITON+SWMM peak flood depths | Zarr | `model_results/ss_tritonswmm.zarr` | 1, 2, 4 | ✓ Present |
+| SS rain-only TRITON+SWMM peak flood depths | Zarr | `model_results/ss_tritonswmm_rainonly.zarr` | 1, 2 | ✓ Present |
+| SS surge-only TRITON+SWMM peak flood depths | Zarr | `model_results/ss_tritonswmm_surgeonly.zarr` | 1, 2 | ✓ Present |
+| SS TRITON-only peak flood depths | Zarr | `model_results/ss_triton_only.zarr` | 1, 2 | ✓ Present |
+| Design storm compound peak flood depths | Zarr | `model_results/design_storm_tritonswmm.zarr` | Comparison | ✓ Present |
+| Design storm rain-only peak flood depths | Zarr | `model_results/design_storm_tritonswmm_rainonly.zarr` | Comparison | ✓ Present |
+| Design storm surge-only peak flood depths | Zarr | `model_results/design_storm_tritonswmm_surgeonly.zarr` | Comparison | ✓ Present |
+| Observed event peak flood depths | Zarr | `model_results/obs_tritonswmm.zarr` | 3 (PPCCT) | ✓ Present |
+| SS simulation event summaries | CSV | `events/ss_simulation_summaries.csv` | 1, 2, 3 | ✓ Present |
+| SS event iloc mapping | CSV | `events/ss_event_iloc_mapping.csv` | 1, 2, 3 | ✓ Present |
+| SS simulation time series | NetCDF | `events/ss_simulation_time_series.nc` | Event stats | ✓ Present (~4 GB) |
+| Observed event summaries | CSV | `events/obs_event_summaries_from_yrs_with_complete_coverage.csv` | 3 | ✓ Present |
+| Observed event iloc mapping | CSV | `events/obs_event_iloc_mapping.csv` | 3 | ✓ Present |
+| Observed event time series | NetCDF | `events/obs_event_tseries_from_yrs_with_complete_coverage.nc` | 3, Event stats | ✓ Present |
+| Design storm event time series (compound) | NetCDF | `events/design_storm_combined.nc` | Comparison | ✓ Present |
+| Design storm event time series (rain-only) | NetCDF | `events/design_storm_rainonly.nc` | Comparison | ✓ Present |
+| Design storm event time series (surge-only) | NetCDF | `events/design_storm_surgeonly.nc` | Comparison | ✓ Present |
+| NOAA tide gage data | CSV | N/A — not a pipeline input | Plotting only | Not required |
+| Empirical rainfall/water level return period curves | CSV | N/A — pipeline outputs, not inputs | Written by event stats runner | Not required as inputs |
+| Watershed boundary shapefile | Shapefile | `geospatial/norfolk_wshed_epsg32147_state_plane_m.shp` | 1, 2, 3, 4 | ✓ Present (EPSG:32147) |
+| Roads (raw, city-wide) | Shapefile | `geospatial/Street_Centerline_-_City_of_Norfolk.shp` | 4 | ✓ Present (unclipped) |
+| Sidewalks (raw, city-wide) | Shapefile | `geospatial/Sidewalk_-_City_of_Norfolk.shp` | 4 | ✓ Present (unclipped) |
+| Buildings (raw, statewide) | Shapefile | `geospatial/buildings_from_ms_github/va_buildings.shp` | 4 | ✓ Present (unclipped) |
+| Parcels | Shapefile | `geospatial/Parcel_Boundaries/Parcel_Boundaries.shp` | 4 | ✓ Present (clip status unknown) |
+| FEMA 100-yr flood depth raster | GeoTIFF | `geospatial/fema/100yr_depths_m.tif` | Comparison | ✓ Present |
+| AOI shapefile | Shapefile | N/A — not used; watershed used directly | 4 | Not required |
 
-**HydroShare Resource Organization** (suggested):
+**Key structural notes on staged data**:
+- All SS zarrs: dims `(x: 526, y: 513, event_iloc: 3798)`, variable `max_wlevel_m`; `event_iloc` maps to events via `ss_event_iloc_mapping.csv`
+- Design storm zarrs: dims `(x: 526, y: 513, return_pd_yrs: 4)` — indexed by return period, not event number
+- SS time series NetCDF: `(event_type=3, year=954, event_id=5, timestep=3261)` — 954 years have ≥1 event (out of 1000 synthesized)
+- Integer variables `156, 171, 170, 155, 140, 141` in time series NetCDFs are rain gage/SWMM node IDs — meaning must be confirmed before I/O layer is designed
+- Roads, buildings, and sidewalks are raw (unclipped); see decision in `00_case_study_yaml_setup.md` on whether to clip on load vs. pre-clip
+
+**HydroShare Resource Organization** (target — will be finalized in Phase 6A):
 ```
 ss-fha-norfolk-case-study/
-    triton_outputs/
-        triton_tritonswmm_allsims_compound.zarr/
-        triton_tritonswmm_allsims_surgeonly.zarr/
-        triton_tritonswmm_allsims_rainonly.zarr/
-        triton_allsims.zarr/
-        triton_observed.zarr/
-        triton_design_storms.zarr/
-    event_data/
-        event_summaries_sim.csv
-        event_summaries_obs.csv
-        event_classification.csv
-        simulation_timeseries/  (or a single consolidated NetCDF)
-        tide_gage_data.csv
-        empirical_rainfall_return_periods.csv
-        empirical_water_level_return_periods.csv
+    model_results/
+        ss_tritonswmm.zarr
+        ss_tritonswmm_rainonly.zarr
+        ss_tritonswmm_surgeonly.zarr
+        ss_triton_only.zarr
+        obs_tritonswmm.zarr          ← MISSING; must be sourced
+        design_storm_tritonswmm.zarr
+        design_storm_tritonswmm_rainonly.zarr
+        design_storm_tritonswmm_surgeonly.zarr
+    events/
+        ss_simulation_summaries.csv
+        ss_event_iloc_mapping.csv
+        ss_simulation_time_series.nc
+        obs_event_summaries_from_yrs_with_complete_coverage.csv
+        obs_event_iloc_mapping.csv
+        obs_event_tseries_from_yrs_with_complete_coverage.nc
+        design_storm_combined.nc
+        design_storm_rainonly.nc
+        design_storm_surgeonly.nc
+        tide_gage_data.csv           ← MISSING; download from NOAA
+        empirical_rainfall_return_periods.csv    ← MISSING; derive in Phase 3C
+        empirical_water_level_return_periods.csv ← MISSING; derive in Phase 3C
     geospatial/
-        watershed.shp (+ .shx, .dbf, .prj)
-        aoi.shp (+ companions)
-        roads_clipped.shp (+ companions)
-        buildings.shp (+ companions)
-        parcels.shp (+ companions)
-        sidewalks.shp (+ companions)
-        fema_100yr_depths_m.tif
+        norfolk_wshed_epsg32147_state_plane_m.shp (+ companions)
+        Street_Centerline_-_City_of_Norfolk.shp (+ companions)
+        Sidewalk_-_City_of_Norfolk.shp (+ companions)
+        buildings_from_ms_github/va_buildings.shp (+ companions)
+        Parcel_Boundaries/Parcel_Boundaries.shp (+ companions)
+        fema/100yr_depths_m.tif
+        aoi.shp (+ companions)       ← MISSING; locate from old project dirs
 ```
 
 **Test data strategy**: Synthetic test data is generated programmatically in `tests/fixtures/test_case_builder.py`. The builder creates xarray Datasets, DataFrames, and GeoDataFrames that match the structure (dimensions, variables, dtypes, coordinate names) of the real HydroShare data. This ensures that code tested against synthetic data will also work with real case study data. Suggested test dimensions: 10x10 grid, 10 events, 5 bootstrap samples.
@@ -426,8 +447,8 @@ ss-fha-norfolk-case-study/
   - `DEFAULT_N_BOOTSTRAP_SAMPLES = 500`
   - `DEFAULT_PLOTTING_POSITION_METHOD = "weibull"`
   - Variable name mappings, etc.
-  - **Not included**: `DEFAULT_CRS_EPSG` (case-study-specific; goes in `cases/norfolk/`) and `synthetic_years` (derived from weather data record length, not user-configured)
-- `cases/norfolk/norfolk_study_area.yaml` -- Norfolk-specific parameters not in HydroShare (e.g. `crs_epsg: 32147`). This directory is the home for anything case-study-specific that isn't committed to HydroShare.
+  - **Not included**: `DEFAULT_CRS_EPSG` (case-study-specific; goes in `cases/norfolk_ssfha_comparison/`) and `synthetic_years` (derived from weather data record length, not user-configured)
+- `cases/norfolk_ssfha_comparison/norfolk_study_area.yaml` -- Norfolk-specific parameters not in HydroShare (e.g. `crs_epsg: 32147`). This directory is the home for anything case-study-specific that isn't committed to HydroShare. Created in work chunk 00.
 
 **Tests:**
 - `test_config.py::test_defaults_are_accessible` -- import and verify defaults exist with expected types

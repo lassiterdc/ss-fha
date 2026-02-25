@@ -35,9 +35,9 @@ Create the foundational exception hierarchy and constants module for `ss_fha`. T
    - `DEFAULT_PLOTTING_POSITION_METHOD`
    - Variable name mappings and other non-case-study-specific constants
 
-   **Important**: Do NOT include a `DEFAULT_CRS_EPSG` or any other parameter that is case-study-specific. Per philosophy.md, users must make intentional choices about such parameters. Hard-coded case-study values (e.g., EPSG for Norfolk) belong in `cases/norfolk/` YAML files, not in defaults.
+   **Important**: Do NOT include a `DEFAULT_CRS_EPSG` or any other parameter that is case-study-specific. Per philosophy.md, users must make intentional choices about such parameters. Hard-coded case-study values (e.g., EPSG for Norfolk) belong in `cases/norfolk_ssfha_comparison/` YAML files, not in defaults.
 
-   **Important**: Do NOT include `DEFAULT_SYNTHETIC_YEARS`. The number of synthetic years is derived from weather data (it is a hard requirement tied to the weather index), not a default.
+   **Important**: Do NOT include `DEFAULT_SYNTHETIC_YEARS`. `n_years_synthesized` is a required field on `SSFHAConfig` (set in 01B) — it is a property of the weather model run (1000 for Norfolk), not an analysis-method default. It must be explicitly provided by the user because it is the denominator for all return period calculations. Using the wrong value silently biases every return period estimate.
 
 ### Assumptions
 

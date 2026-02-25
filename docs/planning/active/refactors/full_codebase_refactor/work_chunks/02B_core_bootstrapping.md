@@ -36,6 +36,8 @@ Extract and port the bootstrapping functions from `_old_code_to_refactor/__utils
 - **No I/O**: `combine_bootstrap_samples()` receives already-loaded arrays, not paths.
 - **`n_bootstrap_samples` and `sample_id` are always explicit arguments** — no defaults.
 - **Reproducibility**: Bootstrap resampling must use a seeded RNG. The seed strategy (fixed global seed + sample_id offset, or per-run seed) should be decided here and documented.
+- **Zero-event years must be included in resampling.** `n_years_synthesized` (from config) is the total number of synthetic years in the weather model run — 1000 for Norfolk. Only 954 of those years have ≥1 event and appear in `ds_sim_tseries.year`. The bootstrap year pool must be drawn from `np.arange(n_years_synthesized)` (all 1000), then intersected with the years present in the time series data. Years that are drawn but have no events correctly contribute zero events to that bootstrap sample. Using only the 954 years-with-events as the pool would shrink the effective denominator and systematically overstate return periods. This is a correctness-critical distinction — test it explicitly: a bootstrap sample that draws only event-free years should produce an all-NaN or all-zero result, not an error.
+- **The same logic applies to observed return period calculations.** `n_years_observed` (from config) is the total length of the observed record, including any years with no events. For Norfolk all 18 observed years have events, but other case studies may not. `n_years_observed` must be passed explicitly as the denominator — never inferred from `len(obs_ds.year)`.
 
 ### Success Criteria
 
@@ -94,6 +96,7 @@ Port the bootstrapping functions with seeded numpy RNG. Use `np.random.default_r
 | Bootstrap zarr files are multi-GB at full scale | Tests use 5 samples, 10x10 grid — never generate large data in tests |
 | RNG seeding strategy affects reproducibility | Document seeding strategy in module docstring; test reproducibility explicitly |
 | `check_for_na_in_combined_bs_zarr()` depends on zarr structure | Make this a pure function on xarray Dataset, not on zarr paths |
+| Using wrong year pool shrinks denominator and biases return periods | Resample from `np.arange(n_years_synthesized)`, not from `ds.year.values`; test explicitly |
 
 ---
 

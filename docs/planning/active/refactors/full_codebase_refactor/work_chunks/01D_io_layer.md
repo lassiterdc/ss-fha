@@ -46,6 +46,8 @@ Create a clean I/O layer that separates data loading/writing from computation. A
 - All functions raise `ss_fha.exceptions.DataError` on failure, not raw I/O exceptions — wrap file operations in try/except and re-raise with context (operation, filepath, reason).
 - `overwrite=False` in `write_zarr` raises `DataError` if path exists — no silent overwrites.
 - `crs_epsg` in `create_mask_from_shapefile` is a required argument, not a default.
+- **Geospatial files are raw / unclipped** (decided in work chunk 00): the HydroShare staging directory holds raw city-wide or statewide shapefiles (roads, buildings, sidewalks). The I/O layer is responsible for clipping to the watershed bounding box (or polygon) on load. `read_shapefile` should accept an optional `clip_to: gpd.GeoDataFrame | None` argument that clips the result before returning it. This keeps raw files on HydroShare (more general) while ensuring computation modules always receive study-area-scoped data.
+- **Integer variable names in time series NetCDFs** (`156`, `171`, `170`, `155`, `140`, `141`): These appear to be rain gage station IDs or SWMM node IDs. Their meaning must be confirmed (see data tracking checklist in `00_case_study_yaml_setup.md`) before designing the NetCDF read functions, as the naming convention affects how variables are indexed and passed downstream.
 
 ### Success Criteria
 

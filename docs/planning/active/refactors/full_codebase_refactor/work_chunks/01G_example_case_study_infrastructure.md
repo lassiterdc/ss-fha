@@ -30,9 +30,7 @@ Review the following documents before making any edits to plans or writing any c
 
 3. `src/ss_fha/examples/config_templates/norfolk_default.yaml` — complete YAML template with `{{placeholder}}` syntax for paths. During local development, placeholders are filled with paths into `/mnt/d/Dropbox/_GradSchool/repos/ss-fha/hydroshare_data`. On HPC, they point to the HydroShare-downloaded paths.
 
-4. `cases/norfolk/README.md` — explains the directory's purpose: case-study-specific parameters that are not in HydroShare and not in code defaults.
-
-5. `cases/norfolk/norfolk_study_area.yaml` — at minimum, `crs_epsg: 32147` and any other Norfolk-specific scalar parameters.
+4. `cases/norfolk_ssfha_comparison/` — **already created in work chunk 00**. The README and all YAML files (including `norfolk_study_area.yaml`) exist. This chunk does not re-create them. Verify they are present; if any are missing, chunk 00 was not completed.
 
 ### Key Design Decisions
 
@@ -44,7 +42,7 @@ Review the following documents before making any edits to plans or writing any c
 
 - `from ss_fha.examples.case_study_catalog import NORFOLK_HYDROSHARE_RESOURCE_ID` works and raises clearly if called
 - `config_templates/norfolk_default.yaml` is complete and passes template filling with a test path substitution
-- `cases/norfolk/norfolk_study_area.yaml` exists with EPSG and any other Norfolk-specific parameters
+- `cases/norfolk_ssfha_comparison/norfolk_study_area.yaml` exists (created in chunk 00) with EPSG and other Norfolk-specific parameters
 - Unit tests for template filling pass without network access
 
 ---
@@ -67,9 +65,9 @@ Before implementing, inspect:
 |------|---------|
 | `src/ss_fha/examples/__init__.py` | Package stub (no re-exports yet — `examples.py` deferred to 06A) |
 | `src/ss_fha/examples/case_study_catalog.py` | Registry with placeholder Norfolk resource ID |
-| `src/ss_fha/examples/config_templates/norfolk_default.yaml` | Complete YAML template |
-| `cases/norfolk/README.md` | Documents the `cases/norfolk/` directory purpose |
-| `cases/norfolk/norfolk_study_area.yaml` | Norfolk-specific scalar parameters (EPSG, etc.) |
+| `src/ss_fha/examples/config_templates/norfolk_default.yaml` | Complete YAML template with `{{placeholder}}` syntax |
+
+**Note**: `cases/norfolk_ssfha_comparison/README.md` and all case study YAMLs were created in work chunk 00. Do not re-create them here.
 
 ---
 
@@ -91,8 +89,8 @@ pytest tests/ -k "template" -v
 # Smoke test: catalog imports correctly
 python -c "from ss_fha.examples.case_study_catalog import NORFOLK_HYDROSHARE_RESOURCE_ID; print('OK')"
 
-# Smoke test: cases/norfolk config is valid YAML
-python -c "import yaml; yaml.safe_load(open('cases/norfolk/norfolk_study_area.yaml')); print('OK')"
+# Smoke test: cases/norfolk_ssfha_comparison config is valid YAML
+python -c "import yaml; yaml.safe_load(open('cases/norfolk_ssfha_comparison/norfolk_study_area.yaml')); print('OK')"
 ```
 
 ---
@@ -107,7 +105,6 @@ python -c "import yaml; yaml.safe_load(open('cases/norfolk/norfolk_study_area.ya
 
 - [ ] `src/ss_fha/examples/case_study_catalog.py` with Norfolk placeholder entry that raises clearly if called
 - [ ] `src/ss_fha/examples/config_templates/norfolk_default.yaml` complete and verified against `SSFHAConfig`
-- [ ] `cases/norfolk/README.md` created
-- [ ] `cases/norfolk/norfolk_study_area.yaml` created with EPSG and other Norfolk-specific parameters
+- [ ] `cases/norfolk_ssfha_comparison/` directory and YAMLs confirmed present (created in chunk 00; this chunk does not re-create them)
 - [ ] Template filling unit tests pass
 - [ ] **Move this document to `implemented/` once all boxes above are checked**

@@ -31,7 +31,8 @@ Review the following documents before making any edits to plans or writing any c
 ### Key Design Decisions from Master Plan
 
 - **No defaults for case-study-specific parameters** (per philosophy.md "Most function arguments should not have defaults"). EPSG, study area bounds, etc. must be explicit.
-- **`synthetic_years` is NOT a default** — it is derived from the weather index data, not user-configured.
+- **`n_years_synthesized` is a required top-level field on `SSFHAConfig`** — it is the total number of synthetic years in the weather model run (e.g., 1000 for Norfolk), including years that produced no events. It is NOT derived from the data: the time series only contains years with ≥1 event (954 for Norfolk), so reading `len(ds.year)` would give the wrong value. Users must supply this explicitly. It is the denominator for all return period calculations; a wrong value silently biases every result. There is no default.
+- **`n_years_observed` is a required field when `toggle_ppcct: true`** — it is the total number of years of observed record, including any years with no events. For Norfolk, all 18 observed years have ≥1 event, so `n_years_observed = 18 = len(obs_ds.year)`. However, other case studies may have observed years with no events, so this must be explicit for the same reason as `n_years_synthesized`. It is the denominator for observed return period calculations in PPCCT. There is no default.
 - **`serial` execution mode is removed** — only `local_concurrent` and `slurm`. Snakemake handles serialization via available resources.
 - **FHA comparison design (resolved)**: Each FHA approach is its own `SSFHAConfig` with a unique `fha_id` and `fha_approach` (`ssfha`, `bds`, `mcds`). The primary config optionally includes `alt_fha_analyses: list[Path]` pointing to alternative configs. `TritonOutputsConfig` only holds the `compound` path and the optional `observed` path for PPCCT — the surge-only/rain-only variants are separate FHA configs, not fields on a single `TritonOutputsConfig`. See the master plan "Multi-FHA Analysis Design" section.
 - **`MeteorologicalConfig` (resolved)**: Removed entirely. Design storm creation is out of scope. Event statistics uses tide gage data and empirical return period CSVs, but these are referenced directly via `EventDataConfig`, not via a separate `MeteorologicalConfig`.
@@ -177,4 +178,5 @@ print(cfg.project_name)
 - [ ] All Phase 1B tests pass
 - [ ] Refactoring status block updated in `_old_code_to_refactor/__inputs.py`
 - [ ] `full_codebase_refactor.md` tracking table updated
+- [ ] Each YAML in `cases/norfolk_ssfha_comparison/` loads without error via `load_config` (smoke test — these YAMLs were written provisionally in chunk 00 and must be validated here)
 - [ ] **Move this document to `implemented/` once all boxes above are checked**
