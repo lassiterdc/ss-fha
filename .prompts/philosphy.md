@@ -10,6 +10,13 @@
 
 ## Development Philosophy
 
+### Developer-AI Communication
+
+- In planning documents, all comments followed by "#user:" are meant as feedback for the AI and must ALL be addressed before any implementation can take place
+    - The comments should be removed once they are addressed
+    - In addressing these comments, impliciations for the entire planning document should be considered since they can yield major changes
+    - The user comments can only be removed with written confirmation from the developer that the comment has been sufficiently addressed 
+
 ### Let's do things right, even if it takes more effort
 
 - Assume the user is a relatively inexperience software developer
@@ -19,6 +26,11 @@
 - Raise concerns when you suspect the user is making design decisions that diverge with best practices
 - Look for opportunities to make the code more efficient (e.g., vectorize operations, be careful with loops involving pandas operations, etc.)
 - Be alert for mathematical errors in probability and return period calculations
+
+### Most function arguments should not have defaults
+
+- Default function arguments can lead to very difficult to debug unexpected patterns so I prefer that we avoid default argument values unless a default is almost always going to be the desired choice, e.g., verbose = True. 
+- This is especially true for the config files that users will populate. The user should have to make an intentional choice about every input.
 
 ### Backward compatibility is NOT a priority for this project
 
@@ -57,6 +69,19 @@ where practical, since they may be versioned separately from code.
 
 ### Robust logging in runner scripts should be directed to the stdout which will be collected by Snakemake and recorded in logfiles
 
+### Identify project-agnostic utility candidates
+
+- When writing or porting a function that has no domain-specific logic (no flood hydrology, no SWMM, no specific project context), add it to `docs/planning/utility_package_candidates.md` as a candidate for a future shared pip-installable package.
+- This prevents the "copy from TRITON-SWMM_toolkit" anti-pattern and encourages clean reuse across projects.
+
+### Snakemake rule generation in workflow.py should use wildcards as much as possible to keep the Snakefiles a reasonable human readable length
+
+- It may be necessary to write loops that generate many different rules, but that should only be done if there isn't cleaner more canonical Snakemake approach to designing the rules
+
+### No cruft to accomodate poorly formatted inputs
+
+- If the case study data in the hydroshare data folder is formatted in a way that is inconvenient for analysis, the AI should make a recommendation to the developer on how to best format the data for the process. This is helpful because it could inform improvements to other prior processes, mainly stochastic weather generation and ensemble simulatoin result processing.
+
 ## Architecture
 
 ### Key Modules
@@ -65,7 +90,7 @@ where practical, since they may be versioned separately from code.
 |--------|---------|
 | `config/` | Pydantic-based configuration package (different config scripts may be needed for different parts of the process) |
 | `workflow.py` | Dynamic Snakefile generation for parallel execution |
-| `execution.py` | Execution strategies: SerialExecutor, LocalConcurrentExecutor, SlurmExecutor |
+| `execution.py` | Execution strategies: LocalConcurrentExecutor, SlurmExecutor (no Serial -- set max_workers=1 to serialize) |
 | `resource_management.py` | CPU/GPU/memory allocation for HPC |
 | `sensitivity_analysis.py` | Parameter sweep orchestration with sub-analyses |
 | `paths.py` | Dataclasses: SysPaths, AnalysisPaths, ScenarioPaths |
@@ -78,31 +103,31 @@ where practical, since they may be versioned separately from code.
     - **NOTE**: This library IS in the current environment, so if any functions or classes can be used as-is, they should be imported rather than duplicated here.
     - Examples for reference:
         - Pydantic usage: 
-            - Example configuration: "D:\Dropbox\_GradSchool\repos\TRITON-SWMM_toolkit\src\TRITON_SWMM_toolkit\config\analysis.py"
-            - Validation: "D:\Dropbox\_GradSchool\repos\TRITON-SWMM_toolkit\src\TRITON_SWMM_toolkit\validation.py"
-        - Custom error messages: "D:\Dropbox\_GradSchool\repos\TRITON-SWMM_toolkit\src\TRITON_SWMM_toolkit\exceptions.py"
-        - Example runner script: "D:\Dropbox\_GradSchool\repos\TRITON-SWMM_toolkit\src\TRITON_SWMM_toolkit\process_timeseries_runner.py"
+            - Example configuration: "/home/dcl3nd/dev/TRITON-SWMM_toolkit/src/TRITON_SWMM_toolkit/config/analysis.py"
+            - Validation: "/home/dcl3nd/dev/TRITON-SWMM_toolkit/src/TRITON_SWMM_toolkit/validation.py"
+        - Custom error messages: "/home/dcl3nd/dev/TRITON-SWMM_toolkit/src/TRITON_SWMM_toolkit/exceptions.py"
+        - Example runner script: "/home/dcl3nd/dev/TRITON-SWMM_toolkit/src/TRITON_SWMM_toolkit/process_timeseries_runner.py"
         - Snakemake support: 
-            - Snakefile generation: "D:\Dropbox\_GradSchool\repos\TRITON-SWMM_toolkit\src\TRITON_SWMM_toolkit\workflow.py"
+            - Snakefile generation: "/home/dcl3nd/dev/TRITON-SWMM_toolkit/src/TRITON_SWMM_toolkit/workflow.py"
             - Snakefile reporting: 
-                - Reporting dry runs: "D:\Dropbox\_GradSchool\repos\TRITON-SWMM_toolkit\src\TRITON_SWMM_toolkit\snakemake_dry_run_report.py"
-                - Parsing Snakemake rules: "D:\Dropbox\_GradSchool\repos\TRITON-SWMM_toolkit\src\TRITON_SWMM_toolkit\snakemake_snakefile_parsing.py"
-        - Defining execution strategies on different systems: "D:\Dropbox\_GradSchool\repos\TRITON-SWMM_toolkit\src\TRITON_SWMM_toolkit\execution.py"
+                - Reporting dry runs: "/home/dcl3nd/dev/TRITON-SWMM_toolkit/src/TRITON_SWMM_toolkit/snakemake_dry_run_report.py"
+                - Parsing Snakemake rules: "/home/dcl3nd/dev/TRITON-SWMM_toolkit/src/TRITON_SWMM_toolkit/snakemake_snakefile_parsing.py"
+        - Defining execution strategies on different systems: "/home/dcl3nd/dev/TRITON-SWMM_toolkit/src/TRITON_SWMM_toolkit/execution.py"
         - For creating case studies (full scale implementation) and test cases (for small scale testing):
-            - For working with case data downloaded from Hydroshare: "D:\Dropbox\_GradSchool\repos\TRITON-SWMM_toolkit\src\TRITON_SWMM_toolkit\examples.py"
-            - Case study creator: "D:\Dropbox\_GradSchool\repos\TRITON-SWMM_toolkit\src\TRITON_SWMM_toolkit\case_study_catalog.py"
-            - Test case builder: "D:\Dropbox\_GradSchool\repos\TRITON-SWMM_toolkit\tests\fixtures\test_case_builder.py"
-            - Test case catalog: "D:\Dropbox\_GradSchool\repos\TRITON-SWMM_toolkit\tests\fixtures\test_case_catalog.py"
-        - Specifying system specific parameters for HPC implementation: "D:\Dropbox\_GradSchool\repos\TRITON-SWMM_toolkit\src\TRITON_SWMM_toolkit\platform_configs.py"
-        - Data classes for controlling filepaths in classes: "D:\Dropbox\_GradSchool\repos\TRITON-SWMM_toolkit\src\TRITON_SWMM_toolkit\paths.py"
+            - For working with case data downloaded from Hydroshare: "/home/dcl3nd/dev/TRITON-SWMM_toolkit/src/TRITON_SWMM_toolkit/examples.py"
+            - Case study creator: "/home/dcl3nd/dev/TRITON-SWMM_toolkit/src/TRITON_SWMM_toolkit/case_study_catalog.py"
+            - Test case builder: "/home/dcl3nd/dev/TRITON-SWMM_toolkit/tests/fixtures/test_case_builder.py"
+            - Test case catalog: "/home/dcl3nd/dev/TRITON-SWMM_toolkit/tests/fixtures/test_case_catalog.py"
+        - Specifying system specific parameters for HPC implementation: "/home/dcl3nd/dev/TRITON-SWMM_toolkit/src/TRITON_SWMM_toolkit/platform_configs.py"
+        - Data classes for controlling filepaths in classes: "/home/dcl3nd/dev/TRITON-SWMM_toolkit/src/TRITON_SWMM_toolkit/paths.py"
 
 ## Testing strategy
 
 ### Platform-Organized Tests
 - This workflow is meant to be system agnostic. Toggles should be implemented in system-specific tests to ensure that running pytest on any given system only triggers tests designed to work on that system.
-- `test_*.py` - Local machine tests (e.g., "D:\Dropbox\_GradSchool\repos\TRITON-SWMM_toolkit\tests\test_PC_04_multisim_with_snakemake.py")
-- `test_UVA_*.py` - UVA HPC cluster tests (e.g., "D:\Dropbox\_GradSchool\repos\TRITON-SWMM_toolkit\tests\test_UVA_03_sensitivity_analysis_with_snakemake.py")
-- See here for creating helper functions for running tests on specific systems: "D:\Dropbox\_GradSchool\repos\TRITON-SWMM_toolkit\tests\utils_for_testing.py"
+- `test_*.py` - Local machine tests (e.g., "/home/dcl3nd/dev/TRITON-SWMM_toolkit/tests/test_PC_04_multisim_with_snakemake.py")
+- `test_UVA_*.py` - UVA HPC cluster tests (e.g., "/home/dcl3nd/dev/TRITON-SWMM_toolkit/tests/test_UVA_03_sensitivity_analysis_with_snakemake.py")
+- See here for creating helper functions for running tests on specific systems: "/home/dcl3nd/dev/TRITON-SWMM_toolkit/tests/utils_for_testing.py"
 
 ### Test Fixtures
 
@@ -124,4 +149,4 @@ def norfolk_multi_sim_analysis_cached():
 ### Use custom assertion functions where appropriate
 
 - e.g., tests of the end-to-end workflow should be able to call a single function that asserts many things that verifies that everything has been run successfully
-- See here for examples of more complex assertion functions: "D:\Dropbox\_GradSchool\repos\TRITON-SWMM_toolkit\tests\utils_for_testing.py""
+- See here for examples of more complex assertion functions: "/home/dcl3nd/dev/TRITON-SWMM_toolkit/tests/utils_for_testing.py""

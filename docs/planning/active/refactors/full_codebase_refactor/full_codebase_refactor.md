@@ -10,17 +10,16 @@
 4. Support HPC execution (particularly SLURM) for executing Snakemake
 5. Create case studies using data hosted on HydroShare
 6. Follow patterns from TRITON-SWMM_toolkit (config, validation, runner scripts, workflow generation, examples/test infrastructure)
-    - **NOTE**: This library IS in the current environment, so if any functions or classes can be used as-is, they should be imported rather than duplicated here.
+    - **NOTE**: This library IS in the current environment at `/home/dcl3nd/dev/TRITON-SWMM_toolkit`. If any functions or classes can be used as-is, they should be imported rather than duplicated here.
 7. Phased implementation with each phase independently testable
 
 ### Assumptions
 
 1. The Norfolk study area is the primary (and initially only) case study
 2. TRITON model outputs (zarr files) are the primary large binary inputs -- these are generated upstream by TRITON-SWMM_toolkit
-3. Design storm generation (`_pre_a1`, `_pre_a2`) belongs in TRITON-SWMM_toolkit, not ss-fha -- excluded from this refactor
-4. Visualization is important but can be decoupled from the computation pipeline
-5. **Low risk**: We will use `hatchling` build system (already configured in pyproject.toml)
-6. Package distribution name is `ss-fha` (PyPI/GitHub); import name is `ss_fha` (Python convention)
+3. Visualization is important but should be decoupled from the main computation pipeline. QAQC plots are an exception: they are generated as part of each runner script when `toggle_qaqc_plots=True` (the default). Tests always set `toggle_qaqc_plots=False`.
+4. **Low risk**: We will use `hatchling` build system (already configured in pyproject.toml)
+5. Package distribution name is `ss-fha` (PyPI/GitHub); import name is `ss_fha` (Python convention)
 
 ### Success Criteria
 
@@ -42,6 +41,58 @@ The software supports four somewhat independent workflows, each toggleable and i
 | 2 | **Flood Hazard Uncertainty** | Bootstrap-derived flood depth confidence intervals for a range of return periods per gridcell | Flood probability outputs from Workflow 1, event-to-flood mappings | Bootstrap samples, combined CI zarrs (0.05, 0.5, 0.95 quantiles) | Workflow 1 |
 | 3 | **PPCCT Validation** | Probability Plot Correlation Coefficient Test -- validates stochastically generated peak flood depth time series against observed | TRITON simulated + observed peak flood depth outputs | Pass/fail maps, p-values, PPCCT correlation grids | None (independent of Workflow 1; uses raw TRITON outputs directly) |
 | 4 | **Flood Risk Assessment** | Impact assessment of flooding on buildings and roads at various depths | Flood probability outputs from Workflow 1 (optionally CIs from Workflow 2), building/road/parcel shapefiles | Impact return periods by feature type and AOI | Workflow 1 (optionally 2) |
+| 5 | **FHA Comparison** | Compares flood hazard and flood risk outputs across multiple FHA approaches (e.g., ss_fha ensemble vs. design storm vs. MCDS) | Flood probability outputs from two or more FHA analyses | Difference maps, spatial statistics, ratio grids | At least two completed Workflow 1 outputs (one per approach) |
+
+### Multi-FHA Analysis Design
+
+A core use case is comparing flood hazard estimates across different methodologies. The design uses a **strategy pattern**: each FHA approach is defined as an independent analysis config with a unique `fha_id`, and a comparison config references the baseline and alternatives by their IDs.
+
+**FHA approach types** (`fha_approach` field):
+- `ssfha` — the full stochastic ensemble approach implemented here
+- `bds` — basic design storm (single deterministic event per return period)
+- `mcds` — Monte Carlo design storm (subsets of the ssfha ensemble, with its own uncertainty approach)
+
+**Config structure:**
+
+The primary `SSFHAConfig` YAML defines the baseline analysis. An optional `alt_fha_analyses` field accepts a list of paths to alternative FHA config YAMLs. Each alternative YAML has the same schema as the primary config but specifies different input datasets, a different `fha_approach`, and a unique `fha_id`.
+
+```yaml
+# Primary analysis YAML (defines the baseline)
+fha_id: ssfha_compound
+fha_approach: ssfha
+triton_outputs:
+  compound: path/to/compound.zarr
+# ... rest of config ...
+
+# Optional: list of alternative analyses to compare against baseline
+alt_fha_analyses:
+  - path/to/rainonly_config.yaml    # fha_id: ssfha_rainonly, fha_approach: ssfha
+  - path/to/surgeonly_config.yaml   # fha_id: ssfha_surgeonly
+  - path/to/design_storm_config.yaml  # fha_id: bds_100yr, fha_approach: bds
+  - path/to/mcds_config.yaml          # fha_id: mcds, fha_approach: mcds
+```
+
+Alternative config YAMLs **inherit** all fields from the primary config except: `fha_id`, `fha_approach`, `triton_outputs`, and approach-specific parameters. Validation ensures all `fha_id` values are unique across primary and alternatives.
+
+**Snakemake wildcard design:**
+
+The `{fha_id}` wildcard drives all flood hazard and uncertainty rules, enabling all analyses to run in parallel. Comparison rules depend on two or more `{fha_id}` outputs and run after the independent analyses complete.
+
+```
+# All FHA analyses run in parallel via wildcard
+rule flood_hazard:
+    input: lambda w: fha_configs[w.fha_id].triton_outputs.compound
+    output: "{output_dir}/{fha_id}/flood_probabilities/compound.zarr"
+
+# Comparison only runs after both baseline and alternative are done
+rule fha_comparison:
+    input:
+        baseline="{output_dir}/{baseline_id}/flood_probabilities/compound.zarr",
+        alternative="{output_dir}/{alt_id}/flood_probabilities/compound.zarr"
+    output: "{output_dir}/comparisons/{baseline_id}_vs_{alt_id}/difference.zarr"
+```
+
+This design does not lock in any specific set of comparisons — any combination of FHA approaches can be added by providing additional config YAMLs.
 
 ### Snakemake Architecture: Single Workflow with Modular Includes
 
@@ -104,9 +155,9 @@ rule all:
 - **Two-layer validation**: Pydantic for types + separate `validation.py` for business logic
 - **Runner scripts as subprocess entry points** with argparse, memory profiling, log-based verification
 - **`SnakemakeWorkflowBuilder`** class for dynamic Snakefile generation
-- **`examples.py` + `case_study_catalog.py`** pattern for HydroShare data download and case study management
+- **`examples.py` + `case_study_catalog.py`** pattern for HydroShare data download and case study management. Keep as two separate files: `examples.py` handles *how* to download; `case_study_catalog.py` is the *registry* of what is available. This clean boundary is worth maintaining from the start even with one case study.
 - **`paths.py` dataclasses** for organized file path management
-- **`execution.py`** strategy pattern for Serial/LocalConcurrent/SLURM execution
+- **`execution.py`** strategy pattern for LocalConcurrent/SLURM execution (no Serial mode -- Snakemake handles serialization via available resources when `max_workers=1`)
 - **Deferred validation** with `ValidationResult` accumulating all issues before raising
 
 ### Current Repo State
@@ -165,7 +216,7 @@ src/ss_fha/
         __init__.py
         flood_probability.py       # CDF computation, return periods, plotting positions
         bootstrapping.py           # Bootstrap sampling, combining, quantile analysis
-        event_statistics.py        # Univariate/multivariate event return periods
+        return_periods.py          # Univariate/multivariate event return periods
         geospatial.py              # Masking, rasterization, feature impact computation
 
     analysis/
@@ -212,6 +263,10 @@ src/ss_fha/
         case_study_catalog.py      # Available case studies registry
         config_templates/          # YAML templates with {{placeholders}}
             norfolk_default.yaml
+
+cases/
+    norfolk/                       # Norfolk-specific parameters not on HydroShare
+        norfolk_study_area.yaml    # e.g., crs_epsg: 32147, study area bounds
 
 tests/
     conftest.py                    # Shared fixtures, platform detection
@@ -283,11 +338,15 @@ Additionally, maintain a tracking table in this planning document (updated after
 
 ## Phased Implementation Plan
 
-### Phase 0: Input Data Inventory and HydroShare Preparation
+### Phase 0: Input Data Inventory and Local Data Staging
 
-**Goal**: Identify every external input file so you can prepare the HydroShare resource before any code is written.
+**Goal**: Identify every external input file and stage it locally. HydroShare upload and download infrastructure are deferred until just before HPC testing (see Phase 6A).
 
-**All case-study-specific data goes to HydroShare** (nothing committed to git). Synthetic test data is generated programmatically in tests but must match the HydroShare data structure.
+**Local staging directory**: `/mnt/d/Dropbox/_GradSchool/repos/ss-fha/hydroshare_data`
+
+This directory holds data *intended* for eventual HydroShare upload. It may be incomplete or require reformatting as implementation progresses — this is expected. **Do not create compatibility shims or workarounds to accommodate poorly formatted input data.** If a file's format needs to change, change the file. The canonical input format is whatever the library's I/O layer expects, not whatever was convenient at the time the data was originally produced.
+
+**All case-study-specific data will eventually go to HydroShare** (nothing committed to git). Synthetic test data is generated programmatically in tests and must match the HydroShare data structure. During local development, configs point directly to the local staging directory; on HPC, they point to the downloaded HydroShare data.
 
 **External Input Files Required** (based on `__inputs.py` and script analysis, design storm scripts excluded):
 
@@ -302,9 +361,6 @@ Additionally, maintain a tracking table in this planning document (updated after
 | Simulation event summaries CSV | CSV | Small (~100KB) | TRITON-SWMM_toolkit | 1, 2, 3 |
 | Observed event summaries CSV | CSV | Small (~100KB) | TRITON-SWMM_toolkit | 3 |
 | Simulation time series (per-event rainfall, water level) | NetCDF/Zarr | Medium-Large | TRITON-SWMM_toolkit | Event statistics |
-| NOAA Atlas 14 IDF tables (point, upper, lower) | CSV | Small (~10KB each) | NOAA Atlas 14 | Design comparison |
-| Unit hyetographs (SCS Type II: 6hr, 12hr, 24hr) | CSV | Small (~5KB each) | Standard reference | Design comparison |
-| Tidal datum CSV (Sewells Point) | CSV | Small (~20KB) | NOAA Tides & Currents | Design comparison |
 | NOAA tide gage data (water level + surge) | CSV | Small-Medium | NOAA Tides & Currents | Event statistics |
 | Empirical rainfall return period curves | CSV | Small | Computed from ensemble | Event statistics |
 | Empirical water level return period curves | CSV | Small | Computed from ensemble | Event statistics |
@@ -333,14 +389,6 @@ ss-fha-norfolk-case-study/
         event_summaries_obs.csv
         event_classification.csv
         simulation_timeseries/  (or a single consolidated NetCDF)
-    meteorological/
-        idf_table_noaa_atlas_14_estimates.csv
-        idf_table_noaa_atlas_14_upper.csv
-        idf_table_noaa_atlas_14_lower.csv
-        unit_hyetograph_scs_tp2_6hr.csv
-        unit_hyetograph_scs_tp2_12hr.csv
-        unit_hyetograph_scs_tp2_24hr.csv
-        tidal_datum.csv
         tide_gage_data.csv
         empirical_rainfall_return_periods.csv
         empirical_water_level_return_periods.csv
@@ -372,14 +420,14 @@ ss-fha-norfolk-case-study/
   - `BootstrapError` (sample_id, reason) -- bootstrap-specific failures
   - `WorkflowError` (phase, stderr) -- Snakemake failures
   - `ValidationError` (issues list) -- accumulated validation failures
-- `src/ss_fha/config/defaults.py` -- Extract constants from `__inputs.py`:
+- `src/ss_fha/config/defaults.py` -- Analysis-method defaults only (no case-study-specific values):
   - `DEFAULT_RETURN_PERIODS = [1, 2, 10, 100]`
   - `DEFAULT_DEPTH_THRESHOLDS_M = [0.03, 0.10, 0.30, 1.00]`
   - `DEFAULT_N_BOOTSTRAP_SAMPLES = 500`
-  - `DEFAULT_SYNTHETIC_YEARS = 1000`
-  - `DEFAULT_CRS_EPSG = 32147`
   - `DEFAULT_PLOTTING_POSITION_METHOD = "weibull"`
   - Variable name mappings, etc.
+  - **Not included**: `DEFAULT_CRS_EPSG` (case-study-specific; goes in `cases/norfolk/`) and `synthetic_years` (derived from weather data record length, not user-configured)
+- `cases/norfolk/norfolk_study_area.yaml` -- Norfolk-specific parameters not in HydroShare (e.g. `crs_epsg: 32147`). This directory is the home for anything case-study-specific that isn't committed to HydroShare.
 
 **Tests:**
 - `test_config.py::test_defaults_are_accessible` -- import and verify defaults exist with expected types
@@ -393,7 +441,16 @@ The config model captures everything from `__inputs.py` in a structured, validat
 
 ```python
 class SSFHAConfig(BaseModel):
-    """Top-level configuration for ss-fha analysis."""
+    """Top-level configuration for ss-fha analysis.
+
+    Each config defines one FHA approach (one fha_id). To compare multiple
+    approaches, set alt_fha_analyses to a list of paths to additional configs.
+    The config that defines alt_fha_analyses is treated as the baseline.
+    """
+
+    # Analysis identity
+    fha_id: str                          # Unique ID for this FHA approach (e.g. "ssfha_compound")
+    fha_approach: Literal["ssfha", "bds", "mcds"]
 
     # Project identification
     project_name: str
@@ -404,15 +461,15 @@ class SSFHAConfig(BaseModel):
     data_dir: Path | None = None         # Optional: override default data location
     output_dir: Path | None = None       # Optional: override default output location
 
-    # Study area parameters
-    crs_epsg: int = 32147
+    # Study area parameters (no default -- must be specified explicitly per study area)
+    crs_epsg: int
 
     # Analysis parameters
     return_periods: list[float] = DEFAULT_RETURN_PERIODS
     depth_thresholds_m: list[float] = DEFAULT_DEPTH_THRESHOLDS_M
-    n_bootstrap_samples: int = 500
-    synthetic_years: int = 1000
-    plotting_position_method: Literal["weibull", "stendinger"] = "weibull"
+    n_bootstrap_samples: int = DEFAULT_N_BOOTSTRAP_SAMPLES
+    # NOTE: n_years (synthetic record length) is derived from event data, not user-specified
+    plotting_position_method: Literal["weibull", "stendinger"] = DEFAULT_PLOTTING_POSITION_METHOD
 
     # Input file references (relative to data_dir or absolute)
     triton_outputs: TritonOutputsConfig
@@ -424,15 +481,15 @@ class SSFHAConfig(BaseModel):
     toggle_uncertainty: bool = True        # Workflow 2
     toggle_ppcct: bool = False             # Workflow 3
     toggle_flood_risk: bool = False        # Workflow 4
+    toggle_qaqc_plots: bool = True         # Generate QAQC plots during runner execution (set False in tests)
 
     # Conditional config sections (required when toggle is True)
     ppcct: PPCCTConfig | None = None
     flood_risk: FloodRiskConfig | None = None
 
-    # Optional analysis modules
-    toggle_design_comparison: bool = False
-    toggle_event_comparison: bool = False
-    meteorological: MeteorologicalConfig | None = None
+    # Optional: compare this (baseline) analysis against alternative FHA approaches
+    toggle_fha_comparison: bool = False
+    alt_fha_analyses: list[Path] | None = None   # Required when toggle_fha_comparison=True
 
     # Execution configuration
     execution: ExecutionConfig
@@ -442,13 +499,9 @@ With sub-models:
 
 ```python
 class TritonOutputsConfig(BaseModel):
-    """Paths to TRITON peak flood depth outputs."""
-    compound: Path                         # Always required (Workflow 1)
-    surge_only: Path | None = None         # Optional driver decomposition
-    rain_only: Path | None = None
-    triton_only: Path | None = None
+    """Paths to TRITON peak flood depth outputs for one FHA approach."""
+    compound: Path                         # Always required (primary simulation type)
     observed: Path | None = None           # Required when toggle_ppcct=True
-    design_storms: Path | None = None      # Required when toggle_design_comparison=True
 
 class EventDataConfig(BaseModel):
     sim_event_summaries: Path
@@ -473,20 +526,9 @@ class FloodRiskConfig(BaseModel):
     sidewalks: Path | None = None
     fema_raster: Path | None = None
 
-class MeteorologicalConfig(BaseModel):
-    """Meteorological inputs for event statistics and design comparison."""
-    idf_table: Path | None = None
-    idf_table_upper: Path | None = None
-    idf_table_lower: Path | None = None
-    unit_hyetographs: dict[int, Path] | None = None  # {6: path, 12: path, 24: path}
-    tidal_datum: Path | None = None
-    tide_gage_data: Path | None = None
-    empirical_rainfall_rp: Path | None = None
-    empirical_water_level_rp: Path | None = None
-
 class ExecutionConfig(BaseModel):
-    mode: Literal["serial", "local_concurrent", "slurm"] = "local_concurrent"
-    max_workers: int | None = None     # None = auto-detect
+    mode: Literal["local_concurrent", "slurm"] = "local_concurrent"
+    max_workers: int | None = None     # None = auto-detect CPU count
     slurm: SlurmConfig | None = None
 
 class SlurmConfig(BaseModel):
@@ -512,6 +554,8 @@ class SlurmConfig(BaseModel):
 - `test_config.py::test_path_resolution` -- Relative paths resolve against `project_dir`/`data_dir`
 - `test_config.py::test_defaults_applied` -- Unspecified optional fields get default values
 - `test_config.py::test_workflow1_only_minimal_inputs` -- Verify minimal config for just flood hazard
+
+**Note on end-to-end tests**: Phase 1F (test infrastructure) builds `build_minimal_test_case()` which is the synthetic fixture for all integration tests. Phase 6 (case study validation) runs the full Norfolk pipeline and compares against old-codebase reference outputs. Passing `test_end_to_end.py` with synthetic data is the gate before HPC testing; passing `test_UVA_end_to_end.py` with real data is the gate before publication.
 
 #### Phase 1C: Path Management
 
@@ -558,6 +602,8 @@ class ProjectPaths:
 - `test_paths.py::test_ensure_dirs_creates_directories` -- Directories created in temp dir
 
 #### Phase 1D: I/O Layer
+
+Before writing any I/O function, check `/home/dcl3nd/dev/TRITON-SWMM_toolkit/src/TRITON_SWMM_toolkit/` for reusable utilities to import rather than duplicate. Any function identified as project-agnostic (useful beyond ss_fha and TRITON-SWMM_toolkit) should be noted in `docs/planning/utility_package_candidates.md` for potential extraction into a shared pip-installable package.
 
 **Files to create:**
 - `src/ss_fha/io/__init__.py`
@@ -624,24 +670,23 @@ class ProjectPaths:
 **Tests:**
 - `test_config.py::test_synthetic_test_case_builds` -- Builder produces valid config + data
 
-#### Phase 1G: Example/Case Study Infrastructure
+#### Phase 1G: Case Study Config Infrastructure (local only)
+
+HydroShare upload and download logic are deferred to Phase 6A, just before HPC testing. This phase only creates the config registry and template so local development can proceed using the staging directory directly.
 
 **Files to create:**
 - `src/ss_fha/examples/__init__.py`
-- `src/ss_fha/examples/examples.py`:
-  - `SSFHAExample` class (following TRITON-SWMM_toolkit pattern):
-    - Downloads from HydroShare resource
-    - Validates BagIt checksums
-    - Fills config templates with resolved paths
-    - Returns loaded `SSFHAConfig`
-  - `download_norfolk_case_study(target_dir=None) -> SSFHAConfig`
 - `src/ss_fha/examples/case_study_catalog.py`:
-  - Registry of available case studies with HydroShare resource IDs
-- `src/ss_fha/examples/config_templates/norfolk_default.yaml` -- Template YAML
+  - Registry of available case studies with HydroShare resource IDs (Norfolk ID is a placeholder until resource is created)
+- `src/ss_fha/examples/config_templates/norfolk_default.yaml` -- Template YAML with `{{placeholder}}` paths; during local development these are filled with paths into the local staging directory
+
+**Deferred to Phase 6A:**
+- `src/ss_fha/examples/examples.py` (`SSFHAExample` class, `download_norfolk_case_study()`)
+- HydroShare upload of staged data
+- BagIt checksum validation
 
 **Tests:**
 - Unit tests for template filling logic (no network needed)
-- Integration test (marked `@pytest.mark.slow`) for actual HydroShare download
 
 #### Phase 1 Definition of Done
 
@@ -785,8 +830,7 @@ Replaces: `f1_*`, `f2_*` scripts
   - `flood_risk.smk`: Impact analysis rules (only included when toggled on)
 
 #### Phase 4B: `workflow/execution.py`
-- `SerialExecutor` -- run Snakemake with `-j 1`
-- `LocalConcurrentExecutor` -- run with `-j N` (auto-detect N)
+- `LocalConcurrentExecutor` -- run with `-j N` (auto-detect N; set N=1 to serialize)
 - `SlurmExecutor` -- run with `--executor slurm` (Snakemake 9.x plugin API)
 
 #### Phase 4C: `workflow/platform_configs.py`
@@ -800,7 +844,7 @@ Replaces: `f1_*`, `f2_*` scripts
 
 #### Phase 4 Definition of Done
 
-- [ ] `ssfha run config.yaml` executes full pipeline on local machine (serial mode)
+- [ ] `ssfha run config.yaml` executes full pipeline on local machine (local_concurrent mode)
 - [ ] `ssfha run config.yaml` executes on SLURM with bootstrap parallelization
 - [ ] `ssfha validate config.yaml` reports all issues before execution
 - [ ] Snakefile correctly expresses dependencies (no race conditions)

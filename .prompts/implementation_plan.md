@@ -38,6 +38,8 @@ Use a descriptive snake_case filename ending in `.md`.
 
 If the user does **not** request a different destination, this default is required.
 
+If the plan is very long, consider creating a subdirectory of the plan with a master planning document and planning docs for each self-contained work unit prefixed with an alphanumeric character for alphabetical sorting. Include an 'implemented' subdirectory in which we will move plans that have been completed.
+
 ## Planning Workflow
 
 1. Restate the task and success criteria in your own words
@@ -49,6 +51,8 @@ If the user does **not** request a different destination, this default is requir
 ## Required Output Format
 
 Use **exactly** these headings, in this order:
+
+0. Header with datetime of writing and datetime of last edit with a short summary of the edit. 
 
 1. `## Task Understanding`
    - Requirements
