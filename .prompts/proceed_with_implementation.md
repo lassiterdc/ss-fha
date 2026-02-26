@@ -20,5 +20,5 @@ Expected call pattern: '.prompts/proceed_with_implementation.md docs/planning/pa
 Expected call pattern: '.prompts/proceed_with_implementation.md'
 
 1. Summarize all key decisions made in a table for the developer. Recommend whether or not to proceed. Upon approval:
-    1. Make sure that all relevant planning documents have been updated to align with the plan.
+    1. Make sure that all relevant planning documents have been updated to align with any decisions or clarifications made.
     2. Proceed with implementation.

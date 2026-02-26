@@ -24,6 +24,7 @@ When you write or port a function that has no domain-specific logic (no flood, n
 | `write_compressed_netcdf(ds, path, compression_level, encoding)` | `src/ss_fha/io/netcdf_io.py` (planned) | xarray-to-netcdf with zlib compression and `DataError` wrapping. | Analogous to `TRITON_SWMM_toolkit.utils.write_netcdf`; written fresh for explicit args and error handling |
 | `read_netcdf(path)` | `src/ss_fha/io/netcdf_io.py` (planned) | Generic netcdf-to-xarray loader with `DataError` wrapping. | No direct analogue in toolkit; written fresh |
 | `uses_slurm() -> bool` | `tests/utils_for_testing.py` | Checks for `sbatch` on PATH — correctly detects SLURM availability from a login node, not just inside a running job. Useful in any HPC workflow test suite. | TRITON-SWMM_toolkit version checks `SLURM_JOB_ID` env var (incorrect for login-node use); ss-fha version uses `shutil.which("sbatch")` |
+| `sort_dimensions(ds, dims)` | `src/ss_fha/core/utils.py` | Sorts an xarray Dataset along a list of named dimensions. No domain logic whatsoever — useful in any xarray workflow. | No direct analogue in TRITON-SWMM_toolkit; written fresh with required (non-default) `dims` argument per ss-fha philosophy |
 
 ---
 

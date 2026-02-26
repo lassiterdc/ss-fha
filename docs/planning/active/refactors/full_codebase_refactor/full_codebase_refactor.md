@@ -317,7 +317,7 @@ Additionally, maintain a tracking table in this planning document (updated after
 | Old File | Status | Migrated To | Phase |
 |----------|--------|------------|-------|
 | `__inputs.py` | PARTIAL (01A + 01B done — constants and Pydantic config model migrated; paths pending 01C) | `config/model.py`, `config/defaults.py`, `paths.py` | 1 |
-| `__utils.py` | IN PROGRESS — I/O functions migrated to `io/*` (Phase 1D); core computation pending Phase 2 | `core/*`, `io/*` | 1D, 2 |
+| `__utils.py` | IN PROGRESS — I/O functions migrated (1D); flood probability functions migrated (2A: `calculate_positions`, `calculate_return_period`, `compute_emp_cdf_and_return_pds`, `sort_dimensions`); remaining computation pending 2B–2D | `core/*`, `io/*` | 1D, 2 |
 | `__plotting.py` | NOT STARTED | `visualization/*` | 5 |
 | `b1_analyze_triton_outputs_fld_prob_calcs.py` | NOT STARTED | `analysis/flood_hazard.py` | 3A |
 | `b2b_sim_vs_obs_flod_ppct.py` | NOT STARTED | `analysis/ppcct.py` | 3D |
@@ -732,15 +732,20 @@ HydroShare upload and download logic are deferred to Phase 6A, just before HPC t
 
 **Goal**: Extract and test the pure computational functions from `__utils.py` into domain-specific modules. All functions are pure computation -- no I/O.
 
-#### Phase 2A: `core/flood_probability.py`
-Extract from `__utils.py`:
-- `compute_emp_cdf_and_return_pds()` -- empirical CDF and return period computation
-- `calculate_positions()` -- Weibull/Stendinger plotting positions
-- `calculate_return_period()` -- position-to-return-period conversion
-- `compute_return_periods_for_series()` -- series-level return period computation
-- `sort_dimensions()` -- xarray dimension ordering utility
+#### Phase 2A: `core/flood_probability.py` — **COMPLETE** (2026-02-26)
+Migrated from `__utils.py`:
+- `calculate_positions()` — plotting positions via `scipy.stats.mstats.plotting_positions(alpha, beta)`
+- `calculate_return_period()` — position-to-return-period conversion
+- `compute_emp_cdf_and_return_pds()` — empirical CDF and return period computation across spatial grid
 
-**Tests**: Verify against hand-computed examples and numpy/scipy reference implementations.
+Also created `src/ss_fha/core/utils.py`:
+- `sort_dimensions()` — generic xarray dimension ordering utility (also added to utility_package_candidates.md)
+
+Deferred: `compute_return_periods_for_series()` — 1D series wrapper for univariate event-level analysis; not needed by the gridded CDF pipeline; deferred to Phase 2C.
+
+Plotting position interface: `alpha`/`beta` float parameters passed directly to scipy. Named method mappings (Weibull=0,0; Cunnane=0.4,0.4 etc.) are documented in the module docstring and config field descriptions.
+
+**Tests**: `tests/test_flood_probability.py` — 22 tests; validates against scipy reference, hand-derived examples, and algebraic properties.
 
 #### Phase 2B: `core/bootstrapping.py`
 Extract from `__utils.py`:

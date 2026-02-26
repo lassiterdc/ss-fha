@@ -1,7 +1,7 @@
 # %%
 # =============================================================================
 # REFACTORING STATUS (ss-fha full_codebase_refactor)
-# Last updated: 2026-02-25
+# Last updated: 2026-02-26
 #
 # I/O FUNCTIONS — migrated to src/ss_fha/io/ (Phase 1D, complete)
 #   write_zarr()                  → ss_fha.io.zarr_io.write_zarr
@@ -12,8 +12,15 @@
 #   create_flood_metric_mask()    → ss_fha.io.gis_io.rasterize_features
 #   (read_zarr, read_netcdf, read_shapefile are new — no old equivalent)
 #
-# CORE COMPUTATION FUNCTIONS — pending Phase 2
-#   All remaining functions in this file are not yet migrated.
+# CORE COMPUTATION FUNCTIONS — partially migrated in Phase 2A
+#   calculate_positions()             → ss_fha.core.flood_probability.calculate_positions
+#   calculate_return_period()         → ss_fha.core.flood_probability.calculate_return_period
+#   compute_emp_cdf_and_return_pds()  → ss_fha.core.flood_probability.compute_emp_cdf_and_return_pds
+#   sort_dimensions()                 → ss_fha.core.utils.sort_dimensions
+#
+#   NOT YET MIGRATED (remaining Phase 2+):
+#   compute_return_periods_for_series() — deferred to later phase (univariate event-level analysis)
+#   All other functions in this file are not yet migrated.
 # =============================================================================
 
 import xarray as xr

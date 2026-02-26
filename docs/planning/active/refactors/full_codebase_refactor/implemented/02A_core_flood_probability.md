@@ -22,26 +22,30 @@ Review the following documents before making any edits to plans or writing any c
 
 Extract and port the flood probability computation functions from `_old_code_to_refactor/__utils.py` into `src/ss_fha/core/flood_probability.py`. These are **pure computation functions** — no I/O, no file operations, no side effects.
 
-**Functions to migrate (verify exact names and signatures in `__utils.py`):**
+**Functions to migrate (verified in `__utils.py`):**
 
 - `compute_emp_cdf_and_return_pds()` — empirical CDF + return period computation across the spatial grid
-- `calculate_positions()` — Weibull or Stendinger plotting positions
+- `calculate_positions()` — plotting positions via `scipy.stats.mstats.plotting_positions(alpha, beta)`
 - `calculate_return_period()` — convert plotting position to return period
-- `compute_return_periods_for_series()` — apply return period computation to a 1D series
-- `sort_dimensions()` — xarray dimension ordering utility
+- `sort_dimensions()` — xarray dimension ordering utility → goes in `src/ss_fha/core/utils.py` (not flood_probability.py)
+
+**Deferred (not in this chunk):**
+- `compute_return_periods_for_series()` — 1D series wrapper; needed only for univariate event-level analysis (Phase 2+), not for the gridded spatial CDF pipeline
 
 ### Key Design Decisions
 
-- **No defaults on arguments** (per philosophy.md). The `plotting_position_method` argument must always be passed explicitly; no fallback to `"weibull"`.
-- **No I/O**: If the old implementations load or write data, strip that out. The function signature receives already-loaded xarray objects.
+- **No defaults on arguments** (per philosophy.md). All arguments — including `alpha`, `beta`, `fillna_val`, and `n_years` — must be passed explicitly at every call site.
+- **`alpha` and `beta` floats** are the plotting position interface (passed directly to `scipy.stats.mstats.plotting_positions`). Config field descriptions must document named method equivalents (e.g., Weibull = alpha=0, beta=0; Cunnane = alpha=0.4, beta=0.4) and refer users to scipy docs. Do not use a method string enum.
+- **No I/O**: Strip all file export, zarr writes, benchmarking prints, and qaqc_plots from ported functions. The function signature receives already-loaded xarray objects.
+- **`sys.exit()` → `SSFHAError`**: Old code uses `sys.exit()` when NaNs present in `calculate_positions`. Replaced with `raise SSFHAError(...)`. (`DataError` was not used because its signature requires a `filepath`, which is inappropriate for a pure computation validation failure.)
 - **Mathematical correctness is critical** — this is a probability codebase. Before accepting any function port, validate against hand-computed examples or scipy/numpy reference implementations.
-- **Alert for errors**: The master plan explicitly flags that plotting position methods (Weibull vs. Stendinger) produce subtly different results. Tests must verify both methods against a known analytical distribution.
+- **`eCDF_stendinger` and `eCDF_wasserman` are validation artifacts** in the old code — not to be ported. They confirmed scipy's `plotting_positions` was giving expected results.
 
 ### Success Criteria
 
 - All functions importable from `ss_fha.core.flood_probability`
 - Unit tests validate return period computation against hand-computed and scipy reference values
-- Both Weibull and Stendinger methods tested against analytical distributions with known CDF
+- Tests validate both alpha=0/beta=0 (Weibull) and alpha=0.4/beta=0.4 (Cunnane) against analytical distributions with known CDF
 - Zero I/O in any function
 
 ---
@@ -76,7 +80,8 @@ Read each function in `__utils.py`, strip any I/O, add type annotations, then wr
 | File | Purpose |
 |------|---------|
 | `src/ss_fha/core/__init__.py` | Package stub |
-| `src/ss_fha/core/flood_probability.py` | Ported computation functions |
+| `src/ss_fha/core/flood_probability.py` | `calculate_positions`, `calculate_return_period`, `compute_emp_cdf_and_return_pds` |
+| `src/ss_fha/core/utils.py` | `sort_dimensions` (generic xarray utility; also added to utility_package_candidates.md) |
 | `tests/test_flood_probability.py` | Unit tests including scipy reference validation |
 
 ### Modified Files
@@ -84,6 +89,8 @@ Read each function in `__utils.py`, strip any I/O, add type annotations, then wr
 | File | Change |
 |------|--------|
 | `_old_code_to_refactor/__utils.py` | Update refactoring status block to note migrated functions |
+| `docs/planning/utility_package_candidates.md` | Add `sort_dimensions` as candidate |
+| `docs/planning/active/refactors/full_codebase_refactor/full_codebase_refactor.md` | Update tracking table for migrated functions |
 
 ---
 
@@ -92,7 +99,7 @@ Read each function in `__utils.py`, strip any I/O, add type annotations, then wr
 | Risk | Mitigation |
 |------|-----------|
 | Mathematical errors introduced during porting | Test against scipy `stats.expon.cdf` or similar analytical distribution with known return periods |
-| Weibull vs. Stendinger: subtle numerical differences cause silent errors | Explicitly test both methods; assert they differ by known amounts for a given dataset |
+| Different alpha/beta values produce subtly different results | Test with alpha=0/beta=0 (Weibull) and alpha=0.4/beta=0.4 (Cunnane); assert they differ by known amounts for a given dataset |
 | `sort_dimensions()` is a utility — may not belong in `flood_probability.py` | If it's genuinely general-purpose, put it in a `core/utils.py` module instead |
 | Old function may mix return period computation with plotting | Strip plotting; plotting belongs in `visualization/` (Phase 5) |
 
@@ -127,11 +134,13 @@ python -c "from ss_fha.core.flood_probability import compute_emp_cdf_and_return_
 ## Definition of Done
 
 - [ ] `src/ss_fha/core/__init__.py` created
-- [ ] `src/ss_fha/core/flood_probability.py` implemented with all five functions
+- [ ] `src/ss_fha/core/utils.py` created with `sort_dimensions`
+- [ ] `src/ss_fha/core/flood_probability.py` implemented with three functions (`calculate_positions`, `calculate_return_period`, `compute_emp_cdf_and_return_pds`)
 - [ ] No I/O in any function (verified by code review)
 - [ ] No default argument values on any function except obvious flags like `verbose`
 - [ ] Unit tests validate against scipy/numpy reference implementations
-- [ ] Both Weibull and Stendinger methods tested
+- [ ] Tests cover alpha=0/beta=0 (Weibull) and alpha=0.4/beta=0.4 (Cunnane) variants
+- [ ] `docs/planning/utility_package_candidates.md` updated with `sort_dimensions`
 - [ ] Refactoring status block updated in `_old_code_to_refactor/__utils.py`
 - [ ] `full_codebase_refactor.md` tracking table updated
 - [ ] **Move this document to `../implemented/` once all boxes above are checked**
