@@ -148,6 +148,7 @@ where practical, since they may be versioned separately from code.
 
 - TRITON-SWMM_toolkit
     - This is a repository for running large ensembles of hydrodynamic models. The current code base, ss-fha, is for flood hazard quantificaiton using the model outputs from that code. It deploys approaches that we can emulate and/or improve upon.
+    - This codebase should not be considered representative of best practices, rather a representation of a design approach that worked for the user. Therefore nothing in the code base should be automatically considered 'correct'. Rather, **the code base should be considered a source to mine for good ideas**
     - **NOTE**: This library IS in the current environment, so if any functions or classes can be used as-is, they should be imported rather than duplicated here.
     - Examples for reference:
         - Pydantic usage: 
