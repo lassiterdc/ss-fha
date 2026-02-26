@@ -107,4 +107,4 @@ pytest tests/test_end_to_end.py::test_event_statistics -v
 - [ ] Event CSV schema validated on load
 - [ ] Integration test passes with synthetic event summaries
 - [ ] `full_codebase_refactor.md` tracking table updated
-- [ ] **Move this document to `implemented/` once all boxes above are checked**
+- [ ] **Move this document to `../implemented/` once all boxes above are checked**

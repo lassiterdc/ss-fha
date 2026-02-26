@@ -111,4 +111,4 @@ pytest tests/ -k "ppcct" -v
 - [ ] Plotting deferred cleanly to Phase 5 (no matplotlib in this module)
 - [ ] Integration test passes
 - [ ] `full_codebase_refactor.md` tracking table updated
-- [ ] **Move this document to `implemented/` once all boxes above are checked**
+- [ ] **Move this document to `../implemented/` once all boxes above are checked**

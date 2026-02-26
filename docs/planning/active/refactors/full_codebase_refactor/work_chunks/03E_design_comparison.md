@@ -137,4 +137,4 @@ pytest tests/test_end_to_end.py::test_fha_comparison -v
 - [ ] `fha_id` uniqueness validated at config load
 - [ ] Integration test with two synthetic FHA outputs passes
 - [ ] `full_codebase_refactor.md` tracking table updated
-- [ ] **Move this document to `implemented/` once all boxes above are checked**
+- [ ] **Move this document to `../implemented/` once all boxes above are checked**

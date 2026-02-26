@@ -134,4 +134,4 @@ assert_zarr_valid(Path('/tmp/ssfha_test/outputs/flood_probabilities/compound.zar
 - [ ] Integration test using synthetic test case passes
 - [ ] Output zarr passes `assert_zarr_valid()` and `assert_flood_probs_valid()`
 - [ ] `full_codebase_refactor.md` tracking table updated
-- [ ] **Move this document to `implemented/` once all boxes above are checked**
+- [ ] **Move this document to `../implemented/` once all boxes above are checked**

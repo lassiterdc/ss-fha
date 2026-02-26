@@ -163,4 +163,4 @@ print(paths.bootstrap_samples_dir)
 - [ ] `ensure_dirs_exist()` creates all `_dir` paths
 - [ ] `None`-valued optional config dirs handled with sensible defaults
 - [ ] All Phase 1C tests pass
-- [ ] **Move this document to `implemented/` once all boxes above are checked**
+- [ ] **Move this document to `../implemented/` once all boxes above are checked**

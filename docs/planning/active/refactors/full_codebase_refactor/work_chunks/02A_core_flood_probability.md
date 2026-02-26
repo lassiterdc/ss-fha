@@ -134,4 +134,4 @@ python -c "from ss_fha.core.flood_probability import compute_emp_cdf_and_return_
 - [ ] Both Weibull and Stendinger methods tested
 - [ ] Refactoring status block updated in `_old_code_to_refactor/__utils.py`
 - [ ] `full_codebase_refactor.md` tracking table updated
-- [ ] **Move this document to `implemented/` once all boxes above are checked**
+- [ ] **Move this document to `../implemented/` once all boxes above are checked**

@@ -133,4 +133,4 @@ pytest tests/test_workflow.py::test_bootstrap_fanout_count -v
 - [ ] `rule all:` correctly gates on config toggles
 - [ ] Bootstrap fan-out generates correct number of rules
 - [ ] `tests/test_workflow.py` passes
-- [ ] **Move this document to `implemented/` once all boxes above are checked**
+- [ ] **Move this document to `../implemented/` once all boxes above are checked**

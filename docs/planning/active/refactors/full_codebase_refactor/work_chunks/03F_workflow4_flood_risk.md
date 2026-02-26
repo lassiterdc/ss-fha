@@ -114,4 +114,4 @@ pytest tests/test_end_to_end.py::test_workflow4_flood_risk -v
 - [ ] Depth thresholds sourced from config (no hardcoded values)
 - [ ] Integration test with synthetic building/road shapefiles passes
 - [ ] `full_codebase_refactor.md` tracking table updated
-- [ ] **Move this document to `implemented/` once all boxes above are checked**
+- [ ] **Move this document to `../implemented/` once all boxes above are checked**

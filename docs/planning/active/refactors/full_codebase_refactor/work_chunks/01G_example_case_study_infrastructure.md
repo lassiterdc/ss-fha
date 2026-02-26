@@ -107,4 +107,4 @@ python -c "import yaml; yaml.safe_load(open('cases/norfolk_ssfha_comparison/syst
 - [ ] `src/ss_fha/examples/config_templates/norfolk_default.yaml` complete and verified against `SSFHAConfig`
 - [ ] `cases/norfolk_ssfha_comparison/` directory and YAMLs confirmed present (created in chunk 00; this chunk does not re-create them)
 - [ ] Template filling unit tests pass
-- [ ] **Move this document to `implemented/` once all boxes above are checked**
+- [ ] **Move this document to `../implemented/` once all boxes above are checked**

@@ -11,8 +11,8 @@ When a chunk is fully implemented and all checklist items are checked, move it t
 | File | Phase | Status |
 |------|-------|--------|
 | `00_case_study_yaml_setup.md` | 0 | **Complete** — moved to `implemented/` 2026-02-25 |
-| `01A_exceptions_and_constants.md` | 1A | Pending |
-| `01B_pydantic_config_model.md` | 1B | Pending |
+| `01A_exceptions_and_constants.md` | 1A | **Complete** — moved to `../implemented/` 2026-02-25 |
+| `01B_pydantic_config_model.md` | 1B | **Complete** — moved to `../implemented/` 2026-02-25 |
 | `01C_path_management.md` | 1C | Pending |
 | `01D_io_layer.md` | 1D | Pending |
 | `01E_validation_layer.md` | 1E | Pending |

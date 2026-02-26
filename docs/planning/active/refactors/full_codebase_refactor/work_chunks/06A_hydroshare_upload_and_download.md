@@ -91,4 +91,4 @@ Before implementing, inspect:
 - [ ] `ssfha download norfolk <dir>` works end-to-end
 - [ ] Integration test passes with real HydroShare data
 - [ ] Ready to hand off to Phase 6 (Norfolk HPC run)
-- [ ] **Move this document to `implemented/` once all boxes above are checked**
+- [ ] **Move this document to `../implemented/` once all boxes above are checked**

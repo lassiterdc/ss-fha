@@ -156,4 +156,4 @@ pytest tests/ -v --ignore=tests/test_UVA_end_to_end.py -k "not slow"
 - [ ] `build_minimal_test_case` writes all files to disk and returns a valid `SSFHAConfig`
 - [ ] `test_synthetic_test_case_builds` passes
 - [ ] All Phase 1 tests pass: `pytest tests/ -k "not slow"`
-- [ ] **Move this document to `implemented/` once all boxes above are checked**
+- [ ] **Move this document to `../implemented/` once all boxes above are checked**

@@ -159,4 +159,4 @@ pytest tests/test_io.py -v
 - [ ] All `tests/test_io.py` tests pass with synthetic data
 - [ ] Refactoring status block updated in `_old_code_to_refactor/__utils.py`
 - [ ] `full_codebase_refactor.md` tracking table updated
-- [ ] **Move this document to `implemented/` once all boxes above are checked**
+- [ ] **Move this document to `../implemented/` once all boxes above are checked**

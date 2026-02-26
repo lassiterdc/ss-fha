@@ -143,4 +143,4 @@ pytest tests/test_end_to_end.py::test_full_pipeline -v
 - [ ] `ssfha.run(config_path)` programmatic API works
 - [ ] All Phase 4 tests pass
 - [ ] `test_end_to_end.py::test_full_pipeline` passes locally
-- [ ] **Move this document to `implemented/` once all boxes above are checked**
+- [ ] **Move this document to `../implemented/` once all boxes above are checked**

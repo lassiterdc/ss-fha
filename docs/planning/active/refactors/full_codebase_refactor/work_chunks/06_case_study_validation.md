@@ -146,4 +146,4 @@ time pytest tests/ -k "not slow and not UVA" -v
 - [ ] CHANGELOG updated
 - [ ] `full_codebase_refactor.md` moved to `docs/planning/completed/`
 - [ ] All work chunk documents moved to `implemented/`
-- [ ] **Move this document to `implemented/` once all boxes above are checked**
+- [ ] **Move this document to `../implemented/` once all boxes above are checked**

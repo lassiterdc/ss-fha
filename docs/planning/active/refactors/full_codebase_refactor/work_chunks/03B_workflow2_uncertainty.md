@@ -129,4 +129,4 @@ pytest tests/test_end_to_end.py::test_workflow2_uncertainty -v
 - [ ] All runners log structured completion markers
 - [ ] Integration test passes with 5 synthetic samples
 - [ ] `full_codebase_refactor.md` tracking table updated
-- [ ] **Move this document to `implemented/` once all boxes above are checked**
+- [ ] **Move this document to `../implemented/` once all boxes above are checked**

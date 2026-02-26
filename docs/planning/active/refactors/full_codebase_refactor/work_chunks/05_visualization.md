@@ -130,4 +130,4 @@ ls /tmp/ssfha_test/outputs/figures/
 - [ ] `toggle_qaqc_plots=False` confirmed to suppress plots (verified in tests)
 - [ ] `__plotting.py` refactoring status block updated to `COMPLETE` (or `PARTIAL` with deferred list)
 - [ ] `full_codebase_refactor.md` tracking table updated
-- [ ] **Move this document to `implemented/` once all boxes above are checked**
+- [ ] **Move this document to `../implemented/` once all boxes above are checked**

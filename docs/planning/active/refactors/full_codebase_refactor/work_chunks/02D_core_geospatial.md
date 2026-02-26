@@ -107,4 +107,4 @@ pytest tests/test_geospatial.py::test_impact_features_known_overlap -v
 - [ ] Tests with synthetic geometries pass
 - [ ] Refactoring status block updated in `_old_code_to_refactor/__utils.py`
 - [ ] `full_codebase_refactor.md` tracking table updated; `__utils.py` moved to `COMPLETE` if fully migrated
-- [ ] **Move this document to `implemented/` once all boxes above are checked**
+- [ ] **Move this document to `../implemented/` once all boxes above are checked**

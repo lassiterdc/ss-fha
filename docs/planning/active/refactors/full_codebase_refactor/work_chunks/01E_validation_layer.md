@@ -125,4 +125,4 @@ pytest tests/test_config.py -v
 - [ ] Every `ValidationIssue` has a non-empty `fix_hint`
 - [ ] File existence checks resolve relative paths against `project_dir` before checking
 - [ ] All Phase 1E tests pass
-- [ ] **Move this document to `implemented/` once all boxes above are checked**
+- [ ] **Move this document to `../implemented/` once all boxes above are checked**

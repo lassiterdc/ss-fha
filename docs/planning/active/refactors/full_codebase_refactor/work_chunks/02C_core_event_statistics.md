@@ -104,4 +104,4 @@ pytest tests/test_event_statistics.py::test_multivariate_combination_guard -v
 - [ ] All tests pass with pre-computed reference values
 - [ ] Refactoring status block updated in `_old_code_to_refactor/__utils.py`
 - [ ] `full_codebase_refactor.md` tracking table updated
-- [ ] **Move this document to `implemented/` once all boxes above are checked**
+- [ ] **Move this document to `../implemented/` once all boxes above are checked**
