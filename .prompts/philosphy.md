@@ -135,6 +135,12 @@ where practical, since they may be versioned separately from code.
 - for point, line, and polygon geospatial data, prefer geojson
 - for multidimensional outputs, prefer zarr (v3) with support for netcdf
 
+### System agnostic software
+
+- In the codebase, there should be minimal system-specific functions
+- The only exception currently to the system-agnostic philosphy is in the development testing structure that may reference hard coded local files which will likely be removed in the future once we've implemented the Hydroshare download functionality
+- All system-specific information should be in user defined yaml files
+
 ## Architecture
 
 ### Key Modules
@@ -183,8 +189,7 @@ where practical, since they may be versioned separately from code.
 ### Platform-Organized Tests
 - This workflow is meant to be system agnostic. Toggles should be implemented in system-specific tests to ensure that running pytest on any given system only triggers tests designed to work on that system.
 - `test_*.py` - Local machine tests (e.g., "/home/dcl3nd/dev/TRITON-SWMM_toolkit/tests/test_PC_04_multisim_with_snakemake.py")
-- `test_UVA_*.py` - UVA HPC cluster tests (e.g., "/home/dcl3nd/dev/TRITON-SWMM_toolkit/tests/test_UVA_03_sensitivity_analysis_with_snakemake.py")
-- See here for creating helper functions for running tests on specific systems: "/home/dcl3nd/dev/TRITON-SWMM_toolkit/tests/utils_for_testing.py"
+- `test_HPC_slurm_*.py` - HPC cluster tests (e.g., "/home/dcl3nd/dev/TRITON-SWMM_toolkit/tests/test_UVA_03_sensitivity_analysis_with_snakemake.py") **Tests should not require a specific system. There are really 3 Snakemake patterns - local runs and slurm executor runs. Generally HPC runs will use the slurm executor, but sometimes the local run mode will be used in a large sbatch job. See TRITON-SWMM_toolkit workflow.py for more information on the 1 big job approach on HPC systems.**
 
 ### Test Fixtures
 
