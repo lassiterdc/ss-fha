@@ -205,7 +205,7 @@ src/ss_fha/
         loader.py                  # YAML loading, template filling, config instantiation
 
     validation.py                  # Business logic validation (beyond Pydantic type checks)
-    paths.py                       # Path dataclasses: ProjectPaths, AnalysisPaths, BootstrapPaths
+    paths.py                       # Path dataclasses: ProjectPaths (output dirs only; input paths live on config model)
 
     io/
         __init__.py

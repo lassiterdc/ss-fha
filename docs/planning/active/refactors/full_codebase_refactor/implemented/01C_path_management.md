@@ -36,28 +36,26 @@ Paths are computed once from an `SSFHAConfig` and passed throughout the applicat
 ```python
 @dataclass
 class ProjectPaths:
-    # Root
-    project_dir: Path
-    data_dir: Path
+    # Root output dirs (no data_dir or project_dir — input paths live on the config model directly)
     output_dir: Path
-    logs_dir: Path
+    logs_dir: Path               # output_dir / "logs"
 
     # Workflow 1: Flood hazard
-    flood_probs_dir: Path          # output_dir / "flood_probabilities"
+    flood_probs_dir: Path        # output_dir / "flood_probabilities"
 
     # Workflow 2: Uncertainty
-    bootstrap_dir: Path            # output_dir / "bootstrap"
-    bootstrap_samples_dir: Path    # bootstrap_dir / "samples"
+    bootstrap_dir: Path          # output_dir / "bootstrap"
+    bootstrap_samples_dir: Path  # bootstrap_dir / "samples"
 
     # Workflow 3: PPCCT
-    ppcct_dir: Path                # output_dir / "ppcct"
+    ppcct_dir: Path              # output_dir / "ppcct"
 
     # Workflow 4: Flood risk
-    flood_risk_dir: Path           # output_dir / "flood_risk"
+    flood_risk_dir: Path         # output_dir / "flood_risk"
 
     # Shared
-    event_stats_dir: Path          # output_dir / "event_statistics"
-    figures_dir: Path              # output_dir / "figures"
+    event_stats_dir: Path        # output_dir / "event_statistics"
+    figures_dir: Path            # output_dir / "figures"
 
     @classmethod
     def from_config(cls, config: SSFHAConfig) -> "ProjectPaths": ...
@@ -65,7 +63,11 @@ class ProjectPaths:
     def ensure_dirs_exist(self) -> None: ...
 ```
 
-Check `/home/dcl3nd/dev/TRITON-SWMM_toolkit/src/TRITON_SWMM_toolkit/paths.py` for patterns to adopt or improve upon.
+**Design decision (confirmed 2026-02-25):** `ProjectPaths` manages *output* directories only. Input data paths (zarr files, shapefiles, CSVs) are stored as absolute `Path` fields directly on the config model (`config.triton_outputs.combined`, `config.event_data.sim_event_summaries`, etc.). This keeps the system flexible — input files can live anywhere on the filesystem, with no reliance on relative path conventions.
+
+**Scratch directories:** Excluded from `ProjectPaths`. If a workflow step needs a scratch/temp location, use `tempfile.TemporaryDirectory` or add a dedicated named subdirectory at the time it is needed.
+
+Check `/home/dcl3nd/dev/TRITON-SWMM_toolkit/src/TRITON_SWMM_toolkit/paths.py` for patterns to adopt or improve upon (class names in that file are TRITON-SWMM_toolkit-specific and should not be copied directly).
 
 ### Success Criteria
 
@@ -119,10 +121,9 @@ Before implementing, inspect:
 
 | Risk | Mitigation |
 |------|-----------|
-| `data_dir` is `None` in config (optional field) | `from_config` defaults `data_dir` to `project_dir / "data"` when `None` |
-| `output_dir` is `None` in config (optional field) | `from_config` defaults to `project_dir / "outputs"` |
+| `output_dir` is `None` in config | `from_config` raises `ConfigurationError` — `output_dir` must be set. The loader sets it from the YAML parent dir if absent, so `None` should not reach `from_config` in practice. |
 | `ensure_dirs_exist()` called with no write permission | Let `mkdir` raise `PermissionError` — fail fast per philosophy |
-| Old scripts use paths not captured in `ProjectPaths` | Audit `_old_code_to_refactor/__inputs.py` carefully; add any missing paths |
+| Old scripts use paths not in `ProjectPaths` | Audit complete (2026-02-25). Scratch dirs excluded by design. Workflow-specific sub-dirs will be added in their respective chunks. |
 
 ---
 
@@ -159,8 +160,7 @@ print(paths.bootstrap_samples_dir)
 ## Definition of Done
 
 - [ ] `src/ss_fha/paths.py` implemented with `ProjectPaths` dataclass
-- [ ] `from_config()` correctly derives all paths from `SSFHAConfig`
+- [ ] `from_config()` correctly derives all output paths from `config.output_dir`; raises `ConfigurationError` if `output_dir` is `None`
 - [ ] `ensure_dirs_exist()` creates all `_dir` paths
-- [ ] `None`-valued optional config dirs handled with sensible defaults
 - [ ] All Phase 1C tests pass
 - [ ] **Move this document to `../implemented/` once all boxes above are checked**

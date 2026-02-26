@@ -141,7 +141,7 @@ where practical, since they may be versioned separately from code.
 | `execution.py` | Execution strategies: LocalConcurrentExecutor, SlurmExecutor (no Serial -- set max_workers=1 to serialize) |
 | `resource_management.py` | CPU/GPU/memory allocation for HPC |
 | `sensitivity_analysis.py` | Parameter sweep orchestration with sub-analyses |
-| `paths.py` | Dataclasses: SysPaths, AnalysisPaths, ScenarioPaths |
+| `paths.py` | Dataclasses for organized output path management (e.g., `ProjectPaths`). Class names should reflect ss-fha's domain, not TRITON-SWMM_toolkit's names (`SysPaths`, `AnalysisPaths`, `ScenarioPaths` are reference patterns only). |
 | `log.py` | JSON-persisted logging with LogField[T] pattern |
 
 ### Sources of inspiration
