@@ -43,8 +43,7 @@ Build the test scaffolding that all future phases depend on. This chunk produces
    - `retrieve_norfolk_case_study(start_from_scratch: bool)` — downloads from HydroShare (integration test only, marked `@pytest.mark.slow`)
 
 5. `tests/utils_for_testing.py` — platform detection and assertion helpers:
-   - `uses_slurm() -> bool`
-   - `on_uva_hpc() -> bool`
+   - `uses_slurm() -> bool` — checks `shutil.which("sbatch")`, not `SLURM_JOB_ID` (correct for login-node use)
    - `skip_if_no_slurm` — pytest mark
    - `skip_if_no_hydroshare` — pytest mark
    - `assert_zarr_valid(path: Path, expected_vars: list[str] | None) -> None`

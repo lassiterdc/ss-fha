@@ -810,3 +810,47 @@ def test_validation_passes_for_valid_config(tmp_path):
 
     result = preflight_validate(analysis_cfg, system_cfg)
     assert result.is_valid
+
+
+# ===========================================================================
+# Phase 1F — Test infrastructure
+# ===========================================================================
+
+def test_synthetic_test_case_builds(tmp_path):
+    """build_minimal_test_case produces a valid, file-backed SSFHAConfig.
+
+    Validates:
+    - The returned object is a valid SSFHAConfig
+    - The combined zarr store exists on disk with the correct variable
+    - The sim event summaries CSV exists on disk with the expected index
+    - assert_zarr_valid passes for the zarr store
+    """
+    from ss_fha.config import SsfhaConfig
+    from tests.fixtures.test_case_builder import build_minimal_test_case
+    from tests.utils_for_testing import assert_zarr_valid
+
+    cfg = build_minimal_test_case(tmp_path)
+
+    assert isinstance(cfg, SsfhaConfig)
+    assert cfg.fha_approach == "ssfha"
+
+    # zarr store exists and has the expected variable
+    assert cfg.triton_outputs.combined.exists(), (
+        f"combined.zarr not found at {cfg.triton_outputs.combined}"
+    )
+    assert_zarr_valid(
+        path=cfg.triton_outputs.combined,
+        expected_vars=["max_wlevel_m"],
+    )
+
+    # event summaries CSV exists and has the expected index columns
+    import pandas as pd
+
+    assert cfg.event_data.sim_event_summaries.exists(), (
+        f"sim summaries CSV not found at {cfg.event_data.sim_event_summaries}"
+    )
+    df = pd.read_csv(cfg.event_data.sim_event_summaries, index_col=[0, 1, 2])
+    assert "precip_depth_mm" in df.columns, (
+        f"'precip_depth_mm' missing from summaries. Columns: {list(df.columns)}"
+    )
+    assert len(df) == 10, f"Expected 10 events, got {len(df)}"

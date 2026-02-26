@@ -92,6 +92,11 @@ exclude_also = [
     "//.//.//.",
 ]
 
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests that require network access or long-running operations (deselect with -k 'not slow')",
+]
+
 [tool.uv]
 package = true
 default-groups = ["dev"]

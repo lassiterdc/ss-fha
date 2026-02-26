@@ -23,6 +23,7 @@ When you write or port a function that has no domain-specific logic (no flood, n
 | `default_zarr_encoding(ds, compression_level)` | `src/ss_fha/io/zarr_io.py` (planned) | Builds Blosc/zstd encoding dict for all numeric variables in an xarray Dataset. | Analogous to `TRITON_SWMM_toolkit.utils.return_dic_zarr_encodings`; written fresh for explicit `compression_level` argument |
 | `write_compressed_netcdf(ds, path, compression_level, encoding)` | `src/ss_fha/io/netcdf_io.py` (planned) | xarray-to-netcdf with zlib compression and `DataError` wrapping. | Analogous to `TRITON_SWMM_toolkit.utils.write_netcdf`; written fresh for explicit args and error handling |
 | `read_netcdf(path)` | `src/ss_fha/io/netcdf_io.py` (planned) | Generic netcdf-to-xarray loader with `DataError` wrapping. | No direct analogue in toolkit; written fresh |
+| `uses_slurm() -> bool` | `tests/utils_for_testing.py` | Checks for `sbatch` on PATH — correctly detects SLURM availability from a login node, not just inside a running job. Useful in any HPC workflow test suite. | TRITON-SWMM_toolkit version checks `SLURM_JOB_ID` env var (incorrect for login-node use); ss-fha version uses `shutil.which("sbatch")` |
 
 ---
 
@@ -31,7 +32,7 @@ When you write or port a function that has no domain-specific logic (no flood, n
 - `ValidationResult` + `ValidationIssue` accumulator pattern (`ss_fha/validation.py`) — useful in any CLI tool or scientific workflow with complex multi-field config. ss-fha's version diverges from `TRITON_SWMM_toolkit.validation` by: (1) omitting the ERROR/WARNING severity split (all issues are blocking), (2) requiring a non-empty `fix_hint` on every issue, and (3) raising `SSFHAValidationError(issues: list[str])` instead of `ConfigurationError`. Consolidating both into a shared package would require reconciling these design choices.
 - Log-based completion checks for subprocess runners — useful in any Snakemake project
 - BagIt checksum validation for HydroShare downloads — useful in any HydroShare-backed project
-- Platform detection helpers (`uses_slurm()`, `on_uva_hpc()`) — useful in any HPC workflow project
+- Platform detection helpers (`uses_slurm()`) — now tracked in the candidates table above
 
 ---
 

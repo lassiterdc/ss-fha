@@ -679,19 +679,18 @@ Note: TRITON-SWMM_toolkit analogues exist but were not imported — they violate
   - `synthetic_flood_dataset` -- Small xarray Dataset mimicking TRITON output structure
 - `tests/fixtures/__init__.py`
 - `tests/fixtures/test_case_builder.py`:
-  - `build_synthetic_triton_output(n_events=10, nx=10, ny=10) -> xr.Dataset` -- Matches real zarr structure
-  - `build_synthetic_observed_output(n_events=5, nx=10, ny=10) -> xr.Dataset`
-  - `build_synthetic_event_summaries(n_events) -> pd.DataFrame`
-  - `build_synthetic_watershed(nx, ny, crs_epsg) -> gpd.GeoDataFrame`
-  - `build_minimal_test_case(tmp_path) -> SSFHAConfig` -- Creates config + all synthetic data files on disk
+  - `build_synthetic_triton_output(n_events: int, nx: int, ny: int) -> xr.Dataset` -- Matches real zarr structure (no defaults; schema: dims x/y/event_iloc, var max_wlevel_m)
+  - `build_synthetic_observed_output(n_events: int, nx: int, ny: int) -> xr.Dataset`
+  - `build_synthetic_event_summaries(n_events: int, include_obs_cols: bool) -> pd.DataFrame` -- cols: event_type, year, event_id (index), precip_depth_mm; obs variant adds event_start
+  - `build_synthetic_watershed(nx: int, ny: int, crs_epsg: int) -> gpd.GeoDataFrame`
+  - `build_minimal_test_case(tmp_path: Path) -> SSFHAConfig` -- Creates config + all synthetic data files on disk (no defaults)
 - `tests/fixtures/test_case_catalog.py`:
-  - `retrieve_norfolk_case_study(start_from_scratch=True)` -- Downloads from HydroShare (integration test only)
+  - `retrieve_norfolk_case_study(start_from_scratch: bool)` -- HydroShare download (deferred; raises NotImplementedError until HPC phase)
 - `tests/utils_for_testing.py`:
-  - `uses_slurm() -> bool`
-  - `on_UVA_HPC() -> bool`
+  - `uses_slurm() -> bool` -- checks `shutil.which("sbatch")`; correct for login-node detection (not `SLURM_JOB_ID`)
   - `skip_if_no_slurm` -- pytest mark decorator
   - `skip_if_no_hydroshare` -- for integration tests
-  - `assert_zarr_valid(path, expected_vars=None)` -- Check zarr is readable and has expected vars
+  - `assert_zarr_valid(path, expected_vars)` -- Check zarr is readable and has expected vars
   - `assert_flood_probs_valid(ds)` -- Domain-specific validation
 
 **Tests:**
