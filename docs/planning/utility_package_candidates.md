@@ -16,7 +16,7 @@ When you write or port a function that has no domain-specific logic (no flood, n
 
 | Function / Class | Current Location | Why Generic | Notes |
 |-----------------|-----------------|-------------|-------|
-| *(none yet — add as encountered)* | | | |
+| `WorkflowError._indent(text, prefix)` | `src/ss_fha/exceptions.py` | Pure string utility: indents each line of a multi-line string by a prefix. No domain logic. | Currently a private static method on `WorkflowError`; could be a standalone `indent_text()` function |
 
 ---
 

@@ -118,7 +118,7 @@ Direct extraction: read the TRITON-SWMM_toolkit exception module and the old `__
 
 ```bash
 # Confirm package imports cleanly
-python -c "from ss_fha.exceptions import SSFHAError, ConfigurationError, DataError, BootstrapError, WorkflowError, ValidationError; print('OK')"
+python -c "from ss_fha.exceptions import SSFHAError, ConfigurationError, DataError, BootstrapError, WorkflowError, SSFHAValidationError; print('OK')"
 
 # Confirm defaults importable
 python -c "from ss_fha.config.defaults import DEFAULT_RETURN_PERIODS, DEFAULT_DEPTH_THRESHOLDS_M; print(DEFAULT_RETURN_PERIODS)"

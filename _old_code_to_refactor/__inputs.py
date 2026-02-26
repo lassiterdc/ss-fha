@@ -1,4 +1,24 @@
 # %% user inputs
+# =============================================================================
+# REFACTORING STATUS (chunk 01A — 2026-02-25)
+# =============================================================================
+# STATUS: PARTIAL — constants migrated; Pydantic config model pending (01B)
+#
+# Migrated to src/ss_fha/config/defaults.py:
+#   RETURN_PERIODS             → DEFAULT_RETURN_PERIODS
+#   N_BS_SAMPLES               → DEFAULT_N_BOOTSTRAP_SAMPLES
+#   ALPHA, BETA                → DEFAULT_PLOTTING_POSITION_METHOD
+#   LST_KEY_FLOOD_THRESHOLDS   → DEFAULT_DEPTH_THRESHOLDS_M
+#   FLD_RTRN_PD_ALPHA          → DEFAULT_BOOTSTRAP_CI_ALPHA
+#
+# NOT migrated (Norfolk-specific or case-study-level values):
+#   COORD_EPSG                 → cases/norfolk_ssfha_comparison/system.yaml
+#   N_YEARS_SYNTHESIZED        → required field on SSFHAConfig (01B)
+#   All directory/file paths   → SSFHAConfig + paths.py (01B+)
+#   PLOT_PARAMS, plot colors   → plotting subpackage (later chunk)
+#   TIMESERIES_BUFFER_BEFORE_FIRST_RAIN_H — BDS-specific, not a default
+#   TARGET_DESIGN_STORM_DURATION_HRS_FOR_COMPARISON — BDS-specific
+# =============================================================================
 import pandas as pd
 from pathlib import Path
 

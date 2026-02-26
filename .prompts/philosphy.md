@@ -40,6 +40,10 @@ These terms align with TRITON-SWMM_toolkit's `system_config` / `analysis_config`
 
 ## Development Philosophy
 
+### Never commit without explicit permission
+
+- All commits require prior approval from the developer
+
 ### Raise questions rather than make assumptions
 
 - When you encounter uncertainty or discrepencies, especially when implementing a prewritten plan that my stale components, err on the side of caution and ask the developer how to proceed
@@ -48,8 +52,9 @@ These terms align with TRITON-SWMM_toolkit's `system_config` / `analysis_config`
 
 - The developer has a strong preference for a plan-then-implement strategy as outlined in .prompts/implementation_plan.md
 - RISK: sometimes planning documents can become stale because of other changes, especially for larger refactors. Each plan should therefore be validated prior to implementation. If there is uncertainty or discrepancies, raise questions.
+- **Sometimes implementing the plan uncovers needs to change it and/or its success criteria. This is okay but raise any discrepencies or opportunities for improvement to the developer before implementing.**
 
-### Developer-AI Communication
+### ''#user:' prefixed statements mark developer comments that must be addressed before plan implementation
 
 - In planning documents, all comments followed by "#user:" are meant as feedback for the AI and must ALL be addressed before any implementation can take place
     - The comments should be removed once they are addressed
@@ -117,9 +122,13 @@ where practical, since they may be versioned separately from code.
 
 - It may be necessary to write loops that generate many different rules, but that should only be done if there isn't cleaner more canonical Snakemake approach to designing the rules
 
-### No cruft to accomodate poorly formatted inputs
+### No cruft
+
+### No shims for working with poorly formatted inputs
 
 - If the case study data in the hydroshare data folder is formatted in a way that is inconvenient for analysis, the AI should make a recommendation to the developer on how to best format the data for the process. This is helpful because it could inform improvements to other prior processes, mainly stochastic weather generation and ensemble simulatoin result processing.
+
+### Avoid aliases whenever possible
 
 ## Architecture
 

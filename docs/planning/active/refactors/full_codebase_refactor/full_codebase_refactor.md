@@ -316,7 +316,7 @@ Additionally, maintain a tracking table in this planning document (updated after
 
 | Old File | Status | Migrated To | Phase |
 |----------|--------|------------|-------|
-| `__inputs.py` | NOT STARTED | `config/model.py`, `config/defaults.py`, `paths.py` | 1 |
+| `__inputs.py` | PARTIAL (01A done — constants migrated; Pydantic model pending 01B) | `config/model.py`, `config/defaults.py`, `paths.py` | 1 |
 | `__utils.py` | NOT STARTED | `core/*`, `io/*` | 2 |
 | `__plotting.py` | NOT STARTED | `visualization/*` | 5 |
 | `b1_analyze_triton_outputs_fld_prob_calcs.py` | NOT STARTED | `analysis/flood_hazard.py` | 3A |
