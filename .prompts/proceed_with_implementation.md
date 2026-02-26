@@ -13,7 +13,7 @@ Expected call pattern: '.prompts/proceed_with_implementation.md docs/planning/pa
 4. Review .prompts/proceed_with_implementation.md
     - if there are discrepencies between the plan and philosphy.md, explain them along with direct quotes from .prompts/philosphy.md
 5. If the plan is associated with a master plan, review the master planning document. Note the risk that the master planning document has gone stale. If there are discrepencies, report them to the developer along with direct quotes from this plan and the master plan, and judge which document is more likely to be stale.
-6. Provide a 'preflight' report with your findings from 1-5. Recommend whether or not to proceed. Do not proceed with implementation without explicit approval from the developer.
+6. Provide a 'preflight' report with your findings from 1-5. Recommend whether or not to proceed. Do not proceed with implementation without explicit approval from the developer. The report should start with 1) decisions needing input and all the relevant context to support the decision followed by options and a recommendation and 2) uncertainties requiring clarification posed as a question with all relevant context needed to inform and support the developer's response and 3) other changes your plan on making after the review. The Rest of the report should cover findings from 1-5.
 
 # If this is a subsequent call to this prompt:
 
