@@ -1,7 +1,7 @@
 # %%
 # =============================================================================
 # REFACTORING STATUS (ss-fha full_codebase_refactor)
-# Last updated: 2026-02-26
+# Last updated: 2026-02-26 (updated for 02B)
 #
 # I/O FUNCTIONS — migrated to src/ss_fha/io/ (Phase 1D, complete)
 #   write_zarr()                  → ss_fha.io.zarr_io.write_zarr
@@ -17,6 +17,20 @@
 #   calculate_return_period()         → ss_fha.core.flood_probability.calculate_return_period
 #   compute_emp_cdf_and_return_pds()  → ss_fha.core.flood_probability.compute_emp_cdf_and_return_pds
 #   sort_dimensions()                 → ss_fha.core.utils.sort_dimensions
+#
+#
+# BOOTSTRAP FUNCTIONS — partially migrated in Phase 2B
+#   sort_last_dim()                   → ss_fha.core.bootstrapping.sort_last_dim
+#   (bootstrapping_return_period_estimates — pure computation kernel extracted into:)
+#     draw_bootstrap_years()          → ss_fha.core.bootstrapping.draw_bootstrap_years  [new]
+#     assemble_bootstrap_sample()     → ss_fha.core.bootstrapping.assemble_bootstrap_sample  [new]
+#     compute_return_period_indexed_depths() → ss_fha.core.bootstrapping.compute_return_period_indexed_depths  [new]
+#
+#   NOT MIGRATED (deferred to Phase 3B runner):
+#   prepare_for_bootstrapping()           — orchestration/file-management; runner layer
+#   bootstrapping_return_period_estimates() — fully replaced by the three new functions above
+#   write_bootstrapped_samples_to_single_zarr() — combine step; runner layer
+#   check_for_na_in_combined_bs_zarr()    — post-combine QA; runner layer
 #
 #   NOT YET MIGRATED (remaining Phase 2+):
 #   compute_return_periods_for_series() — deferred to later phase (univariate event-level analysis)

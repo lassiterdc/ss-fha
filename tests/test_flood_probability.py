@@ -188,17 +188,17 @@ class TestComputeEmpCdfAndReturnPds:
 
     @pytest.fixture
     def simple_stacked_da(self) -> xr.DataArray:
-        """Small (3x3 spatial, 20 events) DataArray already stacked on event_number."""
+        """Small (3x3 spatial, 20 events) DataArray already stacked on event_iloc."""
         rng = np.random.default_rng(99)
         nx, ny, n_events = 3, 3, 20
         data = rng.exponential(scale=1.0, size=(nx, ny, n_events)).astype("float32")
         return xr.DataArray(
             data,
-            dims=["x", "y", "event_number"],
+            dims=["x", "y", "event_iloc"],
             coords={
                 "x": np.arange(nx, dtype=float),
                 "y": np.arange(ny, dtype=float),
-                "event_number": np.arange(n_events),
+                "event_iloc": np.arange(n_events),
             },
             name="flood_depth",
         )
@@ -237,7 +237,7 @@ class TestComputeEmpCdfAndReturnPds:
         ds = compute_emp_cdf_and_return_pds(
             simple_stacked_da, alpha=alpha, beta=beta, n_years=n_years
         )
-        n_events = len(simple_stacked_da.event_number.values)
+        n_events = len(simple_stacked_da.event_iloc.values)
 
         # Spot-check a single gridcell (x=1, y=2)
         raw = simple_stacked_da.sel(x=1.0, y=2.0).values
@@ -263,14 +263,14 @@ class TestComputeEmpCdfAndReturnPds:
             ds_cunnane["empirical_cdf"].values,
         )
 
-    def test_missing_event_number_dim_raises(self):
-        """DataArray without event_number dimension must raise SSFHAError."""
+    def test_missing_event_iloc_dim_raises(self):
+        """DataArray without event_iloc dimension must raise SSFHAError."""
         da = xr.DataArray(
             np.ones((3, 3)),
             dims=["x", "y"],
             name="flood_depth",
         )
-        with pytest.raises(SSFHAError, match="event_number"):
+        with pytest.raises(SSFHAError, match="event_iloc"):
             compute_emp_cdf_and_return_pds(da, alpha=0.0, beta=0.0, n_years=1000)
 
     def test_n_years_affects_return_periods(self, simple_stacked_da):

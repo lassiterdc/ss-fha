@@ -142,14 +142,14 @@ def compute_emp_cdf_and_return_pds(
 ) -> xr.Dataset:
     """Compute empirical CDF and return periods across a spatial flood depth grid.
 
-    Takes a stacked (event_number, x, y) DataArray of peak flood depths and
+    Takes a stacked (event_iloc, x, y) DataArray of peak flood depths and
     returns a Dataset with three variables:
 
     - the original flood depth values (name preserved from input)
     - ``empirical_cdf`` — per-event plotting positions at each gridcell
     - ``return_pd_yrs`` — per-event return periods in years at each gridcell
 
-    The ``event_number`` dimension must already be present (use
+    The ``event_iloc`` dimension must already be present (use
     ``stack_wlevel_dataset`` from the runner layer to create it from the
     multi-index year/event_type/event_id dimensions before calling this
     function).
@@ -161,8 +161,8 @@ def compute_emp_cdf_and_return_pds(
     Parameters
     ----------
     da_wlevel:
-        DataArray with dimension ``event_number`` (and optionally ``x``, ``y``).
-        Must already be stacked so that ``event_number`` is a flat dimension.
+        DataArray with dimension ``event_iloc`` (and optionally ``x``, ``y``).
+        Must already be stacked so that ``event_iloc`` is a flat dimension.
     alpha:
         Plotting position alpha parameter. See module docstring for named
         method (alpha, beta) mappings.
@@ -178,7 +178,7 @@ def compute_emp_cdf_and_return_pds(
     xr.Dataset
         Dataset with variables: the original flood depth variable,
         ``empirical_cdf``, and ``return_pd_yrs``, all indexed by
-        ``event_number`` (and spatial dims if present).
+        ``event_iloc`` (and spatial dims if present).
 
     Notes
     -----
@@ -188,21 +188,21 @@ def compute_emp_cdf_and_return_pds(
     non-exceedance probability). This preserves the rank structure for
     flooded gridcells.
     """
-    if "event_number" not in da_wlevel.dims:
+    if "event_iloc" not in da_wlevel.dims:
         raise SSFHAError(
-            "compute_emp_cdf_and_return_pds: 'event_number' dimension not found in "
+            "compute_emp_cdf_and_return_pds: 'event_iloc' dimension not found in "
             f"da_wlevel. Found dimensions: {list(da_wlevel.dims)}. "
-            "Stack year/event_type/event_id into event_number before calling this function."
+            "Stack year/event_type/event_id into event_iloc before calling this function."
         )
 
-    n_events = len(da_wlevel.event_number.values)
+    n_events = len(da_wlevel.event_iloc.values)
 
     # --- Empirical CDF (plotting positions) ---
     positions = xr.apply_ufunc(
         calculate_positions,
         da_wlevel,
-        input_core_dims=[["event_number"]],
-        output_core_dims=[["event_number"]],
+        input_core_dims=[["event_iloc"]],
+        output_core_dims=[["event_iloc"]],
         vectorize=True,
         dask="parallelized",
         output_dtypes=[float],
@@ -214,8 +214,8 @@ def compute_emp_cdf_and_return_pds(
     return_periods = xr.apply_ufunc(
         calculate_return_period,
         positions,
-        input_core_dims=[["event_number"]],
-        output_core_dims=[["event_number"]],
+        input_core_dims=[["event_iloc"]],
+        output_core_dims=[["event_iloc"]],
         vectorize=True,
         dask="parallelized",
         output_dtypes=[float],

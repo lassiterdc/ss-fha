@@ -46,6 +46,11 @@ toggle_ppcct: true
 toggle_flood_risk: true
 toggle_design_comparison: true
 
+# --- Uncertainty (bootstrap) configuration ---
+uncertainty:
+  n_bootstrap_samples: 500
+  bootstrap_base_seed: 42
+
 # --- PPCCT configuration ---
 ppcct:
   n_years_observed: 18

@@ -23,6 +23,7 @@ These terms align with TRITON-SWMM_toolkit's `system_config` / `analysis_config`
 | **BDS** | Basic Design Storm — a deterministic flood hazard approach using one event per return period | `fha_approach` value |
 | **MCDS** | Monte Carlo Design Storm — subsets design storms from the stochastic ensemble within a CI band around a target return period | Implemented as `toggle_mcds` on SSFHA config, not as a separate `fha_approach` |
 | **SSFHA** | Semicontinuous Simulation-based Flood Hazard Assessment — the primary method implemented here | `fha_approach: ssfha` |
+| **event_iloc** | The canonical flat integer index uniquely identifying a single simulated event within the zarr model output. Connects simulation results to meteorological inputs via the iloc mapping CSV (e.g. `ss_event_iloc_mapping.csv`). Used as an xarray dimension name (`event_iloc`) and as a CSV column name. Not to be confused with `event_id` (the 3D sub-index within a year/event_type slice) or `event_number` (deprecated term — always use `event_iloc`). | xarray dim, CSV column, code variables |
 
 **Rule**: Never use "compound" to describe a simulation type (e.g., "compound simulation", "compound zarr"). Use "combined" instead. Use "compound" only when describing the *phenomenon* of compound flooding.
 

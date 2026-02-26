@@ -63,7 +63,7 @@ event_data:
   # TODO: confirm meaning before I/O layer (01D) can label them correctly).
 
   sim_event_iloc_mapping: /mnt/d/Dropbox/_GradSchool/repos/ss-fha/hydroshare_data/events/ss_event_iloc_mapping.csv
-  # Shape: (3798, 4). Cols: event_number, year, event_type, event_id.
+  # Shape: (3798, 4). Cols: event_iloc, year, event_type, event_id.
   # Maps flat event_iloc (zarr dim) to the 3D index used in time series NetCDFs.
 
   obs_event_summaries: /mnt/d/Dropbox/_GradSchool/repos/ss-fha/hydroshare_data/events/obs_event_summaries_from_yrs_with_complete_coverage.csv
@@ -79,6 +79,14 @@ event_data:
 # --- Workflow toggles ---
 toggle_uncertainty: true       # Workflow 2: bootstrap flood depth CIs
 toggle_ppcct: true             # Workflow 3: PPCCT validation vs. observed
+
+# --- Uncertainty (bootstrap) configuration ---
+# Required when toggle_uncertainty: true.
+uncertainty:
+  n_bootstrap_samples: 500      # Number of bootstrap resamples. 500 provides stable
+                                 # 90% CI estimates (consistent with NOAA Atlas 14).
+  bootstrap_base_seed: 42       # Base RNG seed. Sample i uses seed (bootstrap_base_seed + i).
+                                 # Record this value for run reproducibility.
 toggle_flood_risk: true        # Workflow 4: building/road impact assessment
 toggle_design_comparison: true # Workflow 5: FHA comparison (requires alt_fha_analyses)
 

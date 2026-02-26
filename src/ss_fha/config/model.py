@@ -86,6 +86,26 @@ class PPCCTConfig(BaseModel):
     n_years_observed: int
 
 
+class UncertaintyConfig(BaseModel):
+    """Bootstrap uncertainty estimation configuration.
+
+    Required when ``toggle_uncertainty=True`` on the parent ``SsfhaConfig``.
+
+    Attributes
+    ----------
+    n_bootstrap_samples:
+        Number of bootstrap resamples to generate. 500 provides stable 90% CI
+        estimates (see DEFAULT_N_BOOTSTRAP_SAMPLES in config/defaults.py).
+    bootstrap_base_seed:
+        Base integer seed for the bootstrap RNG. Each sample ``i`` uses
+        ``np.random.default_rng(bootstrap_base_seed + i)``, ensuring every
+        sample is independently reproducible. Record this value alongside your
+        outputs for full run reproducibility.
+    """
+    n_bootstrap_samples: int
+    bootstrap_base_seed: int
+
+
 class FloodRiskConfig(BaseModel):
     """Flood risk assessment configuration (fields added in chunk 01E / Phase 3F)."""
     pass
@@ -135,6 +155,7 @@ class SsfhaConfig(BaseModel):
     alt_fha_analyses: list[Path] = Field(default_factory=list)
     triton_outputs: TritonOutputsConfig
     event_data: EventDataConfig
+    uncertainty: UncertaintyConfig | None = None
     ppcct: PPCCTConfig | None = None
     flood_risk: FloodRiskConfig | None = None
     execution: ExecutionConfig
@@ -142,6 +163,11 @@ class SsfhaConfig(BaseModel):
     @model_validator(mode="after")
     def validate_toggle_dependencies(self) -> "SsfhaConfig":
         errors: list[str] = []
+
+        if self.toggle_uncertainty and self.uncertainty is None:
+            errors.append(
+                "toggle_uncertainty=True but 'uncertainty' config section is missing"
+            )
 
         if self.toggle_ppcct:
             if self.ppcct is None:

@@ -107,6 +107,10 @@ def full_config(tmp_path: Path):
         "n_years_synthesized": 100,
         "return_periods": [1, 2, 10, 100],
         "toggle_uncertainty": True,
+        "uncertainty": {
+            "n_bootstrap_samples": 10,
+            "bootstrap_base_seed": 42,
+        },
         "toggle_mcds": False,
         "toggle_ppcct": True,
         "toggle_flood_risk": False,

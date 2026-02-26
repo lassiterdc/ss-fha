@@ -317,7 +317,7 @@ Additionally, maintain a tracking table in this planning document (updated after
 | Old File | Status | Migrated To | Phase |
 |----------|--------|------------|-------|
 | `__inputs.py` | PARTIAL (01A + 01B done — constants and Pydantic config model migrated; paths pending 01C) | `config/model.py`, `config/defaults.py`, `paths.py` | 1 |
-| `__utils.py` | IN PROGRESS — I/O functions migrated (1D); flood probability functions migrated (2A: `calculate_positions`, `calculate_return_period`, `compute_emp_cdf_and_return_pds`, `sort_dimensions`); remaining computation pending 2B–2D | `core/*`, `io/*` | 1D, 2 |
+| `__utils.py` | IN PROGRESS — I/O (1D), flood probability (2A), bootstrap computation kernel (2B) migrated; combine/QA deferred to 3B runner; remaining computation pending 2C–2D | `core/*`, `io/*` | 1D, 2, 3B |
 | `__plotting.py` | NOT STARTED | `visualization/*` | 5 |
 | `b1_analyze_triton_outputs_fld_prob_calcs.py` | NOT STARTED | `analysis/flood_hazard.py` | 3A |
 | `b2b_sim_vs_obs_flod_ppct.py` | NOT STARTED | `analysis/ppcct.py` | 3D |
@@ -748,14 +748,19 @@ Plotting position interface: `alpha`/`beta` float parameters passed directly to 
 **Tests**: `tests/test_flood_probability.py` — 22 tests; validates against scipy reference, hand-derived examples, and algebraic properties.
 
 #### Phase 2B: `core/bootstrapping.py`
-Extract from `__utils.py`:
-- `prepare_for_bootstrapping()` -- setup sampling indices
-- `bootstrapping_return_period_estimates()` -- single bootstrap sample computation
-- `combine_bootstrap_samples()` -- stack samples along new dimension
-- `compute_bootstrap_quantiles()` -- quantile computation across samples
-- `check_for_na_in_combined_bs_zarr()` -- validation
+**Scope: single-sample computation only.** Combining N samples, computing CIs, and post-combine QA are Phase 3B runner responsibilities — see Phase 3B below.
 
-**Tests**: Small synthetic dataset, verify bootstrap distribution properties (mean converges, CI coverage).
+New functions (not direct ports — old code was I/O-coupled and had no named equivalents for combine/quantile):
+- `draw_bootstrap_years(n_years_synthesized, base_seed, sample_id)` — seeded year resampling via `np.random.default_rng(base_seed + sample_id)`; draws from `np.arange(n_years_synthesized)` (all years, including event-free)
+- `assemble_bootstrap_sample(resampled_years, years_with_events, event_number_mapping, da_flood_probs)` — filter to valid years, reassign sequential event numbers, return stacked DataArray; raises `SSFHAError` on NaN
+- `compute_return_period_indexed_depths(da_stacked, alpha, beta, n_years)` — sort flood depths and assign return period coordinate (calls `core/flood_probability` functions internally)
+- `sort_last_dim(arr)` — helper: `np.sort(arr, axis=-1)`
+
+Also: add `bootstrap_base_seed: int` as a required field in `SsfhaConfig` uncertainty block.
+
+Deferred to Phase 3B runner: combining per-sample zarrs, computing quantile CIs, post-combine NaN QA.
+
+**Tests**: Reproducibility, year-pool correctness (event-free years), NaN guard, return period accuracy.
 
 #### Phase 2C: `core/event_statistics.py`
 Extract from `__utils.py`:

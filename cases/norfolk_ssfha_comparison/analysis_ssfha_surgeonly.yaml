@@ -40,6 +40,11 @@ toggle_ppcct: false        # No observed surge-only zarr — PPCCT not applicabl
 toggle_flood_risk: true
 toggle_design_comparison: false  # Comparison is driven by the primary combined config.
 
+# --- Uncertainty (bootstrap) configuration ---
+uncertainty:
+  n_bootstrap_samples: 500
+  bootstrap_base_seed: 42
+
 # --- Execution ---
 execution:
   mode: local_concurrent
