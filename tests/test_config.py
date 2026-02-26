@@ -502,3 +502,311 @@ def test_norfolk_case_yamls_load(yaml_path):
     cfg = load_config(yaml_path)
     assert cfg.fha_id is not None
     assert cfg.fha_approach in ("ssfha", "bds")
+
+
+# ===========================================================================
+# Phase 1E — Validation layer
+# ===========================================================================
+
+def _make_system_config(tmp_path):
+    """Return a minimal SystemConfig whose watershed path actually exists."""
+    from ss_fha.config.model import SystemConfig
+
+    wshed = tmp_path / "watershed.shp"
+    wshed.touch()
+    return SystemConfig.model_validate({
+        "study_area_id": "test_area",
+        "crs_epsg": 32147,
+        "geospatial": {"watershed": str(wshed)},
+    })
+
+
+def _make_ssfha_config(tmp_path, *, make_files: bool = True):
+    """Return a minimal SsfhaConfig with paths inside tmp_path.
+
+    When make_files=True, the referenced paths are created so file-existence
+    checks pass. When make_files=False, the paths are declared but do not exist,
+    allowing missing-file tests.
+    """
+    from ss_fha.config import load_config_from_dict
+
+    combined = tmp_path / "combined.zarr"
+    summaries = tmp_path / "summaries.csv"
+    if make_files:
+        combined.mkdir()   # zarr stores are directories
+        summaries.touch()
+
+    return load_config_from_dict({
+        "fha_id": "test_ssfha",
+        "fha_approach": "ssfha",
+        "project_name": "test_project",
+        "output_dir": str(tmp_path / "output"),
+        "n_years_synthesized": 1000,
+        "return_periods": [1, 2, 10, 100],
+        "toggle_uncertainty": False,
+        "toggle_mcds": False,
+        "toggle_ppcct": False,
+        "toggle_flood_risk": False,
+        "toggle_design_comparison": False,
+        "triton_outputs": {"combined": str(combined)},
+        "event_data": {"sim_event_summaries": str(summaries)},
+        "execution": {"mode": "local_concurrent"},
+    })
+
+
+# ---------------------------------------------------------------------------
+# Validation module imports
+# ---------------------------------------------------------------------------
+
+def test_validation_importable():
+    """All public names from ss_fha.validation can be imported."""
+    from ss_fha.validation import (  # noqa: F401
+        ValidationIssue,
+        ValidationResult,
+        preflight_validate,
+        validate_config,
+        validate_input_files,
+        validate_workflow_inputs,
+    )
+
+
+# ---------------------------------------------------------------------------
+# ValidationResult / ValidationIssue unit tests
+# ---------------------------------------------------------------------------
+
+def test_validation_result_starts_valid():
+    """An empty ValidationResult is valid."""
+    from ss_fha.validation import ValidationResult
+    result = ValidationResult()
+    assert result.is_valid
+    assert result.issues == []
+
+
+def test_validation_result_add_issue_marks_invalid():
+    """Adding an issue makes is_valid False."""
+    from ss_fha.validation import ValidationResult
+    result = ValidationResult()
+    result.add_issue(
+        field_name="some_field",
+        message="it is broken",
+        current_value=None,
+        fix_hint="Fix it.",
+    )
+    assert not result.is_valid
+    assert len(result.issues) == 1
+
+
+def test_validation_result_merge():
+    """merge() combines issues from two ValidationResults."""
+    from ss_fha.validation import ValidationResult
+    a = ValidationResult()
+    a.add_issue("field_a", "msg_a", None, "fix_a")
+    b = ValidationResult()
+    b.add_issue("field_b", "msg_b", None, "fix_b")
+    a.merge(b)
+    assert len(a.issues) == 2
+    fields = {i.field for i in a.issues}
+    assert fields == {"field_a", "field_b"}
+
+
+def test_validation_result_raise_if_invalid_raises():
+    """raise_if_invalid() raises SSFHAValidationError when issues exist."""
+    import pytest
+    from ss_fha.validation import ValidationResult
+    from ss_fha.exceptions import SSFHAValidationError
+    result = ValidationResult()
+    result.add_issue("f", "m", "v", "h")
+    with pytest.raises(SSFHAValidationError):
+        result.raise_if_invalid()
+
+
+def test_validation_result_raise_if_invalid_silent_when_valid():
+    """raise_if_invalid() does not raise when there are no issues."""
+    from ss_fha.validation import ValidationResult
+    result = ValidationResult()
+    result.raise_if_invalid()  # must not raise
+
+
+def test_validation_issue_str_contains_key_fields():
+    """ValidationIssue.__str__ includes field, message, current_value, and fix_hint."""
+    from ss_fha.validation import ValidationIssue
+    issue = ValidationIssue(
+        field="triton_outputs.combined",
+        message="does not exist",
+        current_value="/some/path.zarr",
+        fix_hint="Create the zarr store at the specified path.",
+    )
+    s = str(issue)
+    assert "triton_outputs.combined" in s
+    assert "does not exist" in s
+    assert "/some/path.zarr" in s
+    assert "Create the zarr store" in s
+
+
+# ---------------------------------------------------------------------------
+# test_validation_missing_input_files
+# ---------------------------------------------------------------------------
+
+def test_validation_missing_input_files(tmp_path):
+    """preflight_validate reports all missing files, not just the first."""
+    import pytest
+    from ss_fha.validation import validate_input_files
+    from ss_fha.config import load_config_from_dict
+    from ss_fha.config.model import SystemConfig
+
+    # System config pointing to a non-existent watershed
+    system_cfg = SystemConfig.model_validate({
+        "study_area_id": "test_area",
+        "crs_epsg": 32147,
+        "geospatial": {
+            "watershed": str(tmp_path / "missing_watershed.shp"),
+            "roads": str(tmp_path / "missing_roads.shp"),
+        },
+    })
+
+    # Analysis config with non-existent combined zarr and summaries csv
+    analysis_cfg = load_config_from_dict({
+        "fha_id": "test_ssfha",
+        "fha_approach": "ssfha",
+        "project_name": "test_project",
+        "output_dir": str(tmp_path / "output"),
+        "n_years_synthesized": 1000,
+        "return_periods": [1, 2, 10, 100],
+        "toggle_uncertainty": False,
+        "toggle_mcds": False,
+        "toggle_ppcct": False,
+        "toggle_flood_risk": False,
+        "toggle_design_comparison": False,
+        "triton_outputs": {"combined": str(tmp_path / "missing_combined.zarr")},
+        "event_data": {"sim_event_summaries": str(tmp_path / "missing_summaries.csv")},
+        "execution": {"mode": "local_concurrent"},
+    })
+
+    result = validate_input_files(analysis_cfg, system_cfg)
+    assert not result.is_valid
+
+    missing_fields = {issue.field for issue in result.issues}
+    # All four missing paths should be reported together
+    assert "geospatial.watershed" in missing_fields
+    assert "geospatial.roads" in missing_fields
+    assert "triton_outputs.combined" in missing_fields
+    assert "event_data.sim_event_summaries" in missing_fields
+
+    # fix_hint must be non-empty on every issue
+    for issue in result.issues:
+        assert issue.fix_hint, f"fix_hint is empty on issue: {issue.field}"
+
+
+# ---------------------------------------------------------------------------
+# test_validation_accumulates_errors
+# ---------------------------------------------------------------------------
+
+def test_validation_accumulates_errors(tmp_path):
+    """Multiple issues across validate_* functions are all reported together."""
+    import pytest
+    from ss_fha.validation import preflight_validate
+    from ss_fha.exceptions import SSFHAValidationError
+    from ss_fha.config.model import SystemConfig
+    from ss_fha.config import load_config_from_dict
+
+    # System with missing watershed
+    system_cfg = SystemConfig.model_validate({
+        "study_area_id": "test_area",
+        "crs_epsg": 32147,
+        "geospatial": {"watershed": str(tmp_path / "missing.shp")},
+    })
+
+    # Analysis config: missing zarr + missing summaries
+    analysis_cfg = load_config_from_dict({
+        "fha_id": "test_ssfha",
+        "fha_approach": "ssfha",
+        "project_name": "test_project",
+        "output_dir": str(tmp_path / "output"),
+        "n_years_synthesized": 1000,
+        "return_periods": [1, 2, 10, 100],
+        "toggle_uncertainty": False,
+        "toggle_mcds": False,
+        "toggle_ppcct": False,
+        "toggle_flood_risk": False,
+        "toggle_design_comparison": False,
+        "triton_outputs": {"combined": str(tmp_path / "missing.zarr")},
+        "event_data": {"sim_event_summaries": str(tmp_path / "missing.csv")},
+        "execution": {"mode": "local_concurrent"},
+    })
+
+    with pytest.raises(SSFHAValidationError) as exc_info:
+        preflight_validate(analysis_cfg, system_cfg)
+
+    # All three missing files should appear in the exception message
+    msg = str(exc_info.value)
+    assert "geospatial.watershed" in msg
+    assert "triton_outputs.combined" in msg
+    assert "event_data.sim_event_summaries" in msg
+    # More than one issue reported
+    assert exc_info.value.issues and len(exc_info.value.issues) >= 3
+
+
+# ---------------------------------------------------------------------------
+# test_validation_per_workflow
+# ---------------------------------------------------------------------------
+
+def test_validation_per_workflow(tmp_path):
+    """validate_workflow_inputs catches missing PPCCT inputs when toggle_ppcct=True.
+
+    This test constructs a SsfhaConfig directly (bypassing load_config_from_dict's
+    Pydantic validators) to simulate a config with toggle_ppcct=True but missing
+    observed zarr, ppcct section, and obs_event_summaries — verifying that
+    validate_workflow_inputs catches all three.
+    """
+    from ss_fha.validation import validate_workflow_inputs
+    from ss_fha.config.model import (
+        SsfhaConfig, TritonOutputsConfig, EventDataConfig, ExecutionConfig
+    )
+
+    # Build a SsfhaConfig that passes Pydantic's toggle_ppcct checks, then
+    # mutate the relevant fields to None to test defensive validation.
+    cfg = SsfhaConfig.model_construct(
+        fha_approach="ssfha",
+        fha_id="test",
+        project_name="test",
+        output_dir=None,
+        study_area_config=None,
+        n_years_synthesized=1000,
+        return_periods=[1, 2, 10, 100],
+        toggle_uncertainty=False,
+        toggle_mcds=False,
+        toggle_ppcct=True,        # PPCCT enabled ...
+        toggle_flood_risk=False,
+        toggle_design_comparison=False,
+        alt_fha_analyses=[],
+        triton_outputs=TritonOutputsConfig.model_construct(
+            combined=Path("/fake/combined.zarr"),
+            observed=None,         # ... but observed is missing
+        ),
+        event_data=EventDataConfig.model_construct(
+            sim_event_summaries=Path("/fake/summaries.csv"),
+            obs_event_summaries=None,  # ... and obs summaries missing
+        ),
+        ppcct=None,                # ... and ppcct section missing
+        flood_risk=None,
+        execution=ExecutionConfig.model_construct(mode="local_concurrent", max_workers=None, slurm=None),
+    )
+
+    result = validate_workflow_inputs(cfg)
+    assert not result.is_valid
+
+    missing_fields = {issue.field for issue in result.issues}
+    assert "triton_outputs.observed" in missing_fields
+    assert "ppcct" in missing_fields
+    assert "event_data.obs_event_summaries" in missing_fields
+
+
+def test_validation_passes_for_valid_config(tmp_path):
+    """preflight_validate returns a valid result when all paths exist and config is complete."""
+    from ss_fha.validation import preflight_validate
+
+    system_cfg = _make_system_config(tmp_path)
+    analysis_cfg = _make_ssfha_config(tmp_path, make_files=True)
+
+    result = preflight_validate(analysis_cfg, system_cfg)
+    assert result.is_valid

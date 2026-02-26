@@ -28,7 +28,7 @@ When you write or port a function that has no domain-specific logic (no flood, n
 
 ## Patterns to Watch For
 
-- Deferred validation (`ValidationResult` + `ValidationIssue` accumulator pattern) — useful in any CLI tool with complex config
+- `ValidationResult` + `ValidationIssue` accumulator pattern (`ss_fha/validation.py`) — useful in any CLI tool or scientific workflow with complex multi-field config. ss-fha's version diverges from `TRITON_SWMM_toolkit.validation` by: (1) omitting the ERROR/WARNING severity split (all issues are blocking), (2) requiring a non-empty `fix_hint` on every issue, and (3) raising `SSFHAValidationError(issues: list[str])` instead of `ConfigurationError`. Consolidating both into a shared package would require reconciling these design choices.
 - Log-based completion checks for subprocess runners — useful in any Snakemake project
 - BagIt checksum validation for HydroShare downloads — useful in any HydroShare-backed project
 - Platform detection helpers (`uses_slurm()`, `on_uva_hpc()`) — useful in any HPC workflow project
