@@ -1,4 +1,21 @@
 # %%
+# =============================================================================
+# REFACTORING STATUS (ss-fha full_codebase_refactor)
+# Last updated: 2026-02-25
+#
+# I/O FUNCTIONS — migrated to src/ss_fha/io/ (Phase 1D, complete)
+#   write_zarr()                  → ss_fha.io.zarr_io.write_zarr
+#   delete_zarr()                 → ss_fha.io.zarr_io.delete_zarr
+#   return_dic_zarr_encodingds()  → ss_fha.io.zarr_io.default_zarr_encoding
+#   write_compressed_netcdf()     → ss_fha.io.netcdf_io.write_compressed_netcdf
+#   create_mask_from_shapefile()  → ss_fha.io.gis_io.create_mask_from_shapefile
+#   create_flood_metric_mask()    → ss_fha.io.gis_io.rasterize_features
+#   (read_zarr, read_netcdf, read_shapefile are new — no old equivalent)
+#
+# CORE COMPUTATION FUNCTIONS — pending Phase 2
+#   All remaining functions in this file are not yet migrated.
+# =============================================================================
+
 import xarray as xr
 import dask.array as da
 from pathlib import Path

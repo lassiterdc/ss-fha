@@ -317,7 +317,7 @@ Additionally, maintain a tracking table in this planning document (updated after
 | Old File | Status | Migrated To | Phase |
 |----------|--------|------------|-------|
 | `__inputs.py` | PARTIAL (01A + 01B done — constants and Pydantic config model migrated; paths pending 01C) | `config/model.py`, `config/defaults.py`, `paths.py` | 1 |
-| `__utils.py` | NOT STARTED | `core/*`, `io/*` | 2 |
+| `__utils.py` | IN PROGRESS — I/O functions migrated to `io/*` (Phase 1D); core computation pending Phase 2 | `core/*`, `io/*` | 1D, 2 |
 | `__plotting.py` | NOT STARTED | `visualization/*` | 5 |
 | `b1_analyze_triton_outputs_fld_prob_calcs.py` | NOT STARTED | `analysis/flood_hazard.py` | 3A |
 | `b2b_sim_vs_obs_flod_ppct.py` | NOT STARTED | `analysis/ppcct.py` | 3D |
@@ -631,26 +631,27 @@ class ProjectPaths:
 
 Before writing any I/O function, check `/home/dcl3nd/dev/TRITON-SWMM_toolkit/src/TRITON_SWMM_toolkit/` for reusable utilities to import rather than duplicate. Any function identified as project-agnostic (useful beyond ss_fha and TRITON-SWMM_toolkit) should be noted in `docs/planning/utility_package_candidates.md` for potential extraction into a shared pip-installable package.
 
-**Files to create:**
+**Status: COMPLETE (2026-02-25)**
+
+**Files created:**
 - `src/ss_fha/io/__init__.py`
-- `src/ss_fha/io/zarr_io.py` -- Extract from `__utils.py`:
-  - `write_zarr(ds, path, encoding=None, overwrite=False)`
-  - `read_zarr(path, chunks=None) -> xr.Dataset`
-  - `delete_zarr(path, timeout_s=30)`
-  - `default_zarr_encoding(ds) -> dict`
+- `src/ss_fha/io/zarr_io.py`:
+  - `write_zarr(ds, path, encoding, overwrite, compression_level=5)`
+  - `read_zarr(path, chunks) -> xr.Dataset`
+  - `delete_zarr(path, timeout_s)`
+  - `default_zarr_encoding(ds, compression_level=5) -> dict`
 - `src/ss_fha/io/netcdf_io.py`:
-  - `write_compressed_netcdf(ds, path, encoding=None)`
+  - `write_compressed_netcdf(ds, path, encoding, compression_level=5)`
   - `read_netcdf(path) -> xr.Dataset`
 - `src/ss_fha/io/gis_io.py`:
-  - `read_shapefile(path) -> gpd.GeoDataFrame`
+  - `read_shapefile(path, clip_to) -> gpd.GeoDataFrame`
   - `create_mask_from_shapefile(shapefile_path, reference_ds, crs_epsg) -> xr.DataArray`
-  - `rasterize_features(gdf, reference_ds, field=None) -> xr.DataArray`
+  - `rasterize_features(gdf, reference_ds, field) -> xr.DataArray`
 
-**Tests:**
-- `test_io.py::test_zarr_roundtrip` -- Write and read back an xarray Dataset
-- `test_io.py::test_netcdf_roundtrip` -- Same for NetCDF
-- `test_io.py::test_zarr_encoding_defaults` -- Verify encoding dict structure
-- Tests use synthetic xarray datasets (no HydroShare data needed)
+Note: TRITON-SWMM_toolkit analogues exist but were not imported — they violate this project's no-defaults philosophy. Fresh implementations documented in `docs/planning/utility_package_candidates.md`.
+
+**Tests (21 passing):**
+- `test_io.py` — zarr roundtrip, netcdf roundtrip, zarr encoding, overwrite protection, delete, shapefile read, clip_to, create_mask, rasterize_features, all DataError cases
 
 #### Phase 1E: Validation Layer
 

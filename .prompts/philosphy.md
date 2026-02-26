@@ -130,6 +130,11 @@ where practical, since they may be versioned separately from code.
 
 ### Avoid aliases whenever possible
 
+### data type preferences
+
+- for point, line, and polygon geospatial data, prefer geojson
+- for multidimensional outputs, prefer zarr (v3) with support for netcdf
+
 ## Architecture
 
 ### Key Modules
@@ -150,6 +155,9 @@ where practical, since they may be versioned separately from code.
     - This is a repository for running large ensembles of hydrodynamic models. The current code base, ss-fha, is for flood hazard quantificaiton using the model outputs from that code. It deploys approaches that we can emulate and/or improve upon.
     - This codebase should not be considered representative of best practices, rather a representation of a design approach that worked for the user. Therefore nothing in the code base should be automatically considered 'correct'. Rather, **the code base should be considered a source to mine for good ideas**
     - **NOTE**: This library IS in the current environment, so if any functions or classes can be used as-is, they should be imported rather than duplicated here.
+    - **When a TRITON-SWMM_toolkit function violates this project's design philosophy** (e.g., has default arguments that should be explicit, doesn't raise `DataError` on failure, or doesn't match the expected signature), write a fresh ss-fha implementation instead of importing. When doing so:
+        1. Note the new function in `docs/planning/utility_package_candidates.md`, including which TRITON-SWMM_toolkit function it is analogous to (so the two implementations can be consolidated when a shared utility package is created).
+        2. Do not add a comment in the source code referencing the toolkit — the utility candidates list is the canonical record of this relationship.
     - Examples for reference:
         - Pydantic usage: 
             - Example configuration: "/home/dcl3nd/dev/TRITON-SWMM_toolkit/src/TRITON_SWMM_toolkit/config/analysis.py"

@@ -42,12 +42,14 @@ Create a clean I/O layer that separates data loading/writing from computation. A
 
 ### Key Design Decisions
 
-- **No defaults on arguments** (per philosophy.md) — except where a `None` means "compute automatically" (e.g., `encoding=None` means `default_zarr_encoding` is called internally).
+- **No defaults on arguments** (per philosophy.md) — except where a `None` means "compute automatically" (e.g., `encoding=None` means `default_zarr_encoding` is called internally), or where a default is widely accepted and rarely overridden.
+- **`compression_level: int = 5`** is a documented exception to the no-defaults rule. A value of 5 is a reasonable middle-ground for both zstd (zarr) and zlib (netcdf) compression. Callers may override it explicitly; it should also be settable via YAML config in a future config model extension.
 - All functions raise `ss_fha.exceptions.DataError` on failure, not raw I/O exceptions — wrap file operations in try/except and re-raise with context (operation, filepath, reason).
 - `overwrite=False` in `write_zarr` raises `DataError` if path exists — no silent overwrites.
 - `crs_epsg` in `create_mask_from_shapefile` is a required argument, not a default.
 - **Geospatial files are raw / unclipped** (decided in work chunk 00, Decision 1): the HydroShare staging directory holds raw city-wide or statewide shapefiles (roads, buildings, sidewalks). The I/O layer is responsible for clipping to the watershed polygon on load. `read_shapefile` must accept a `clip_to: gpd.GeoDataFrame | None` argument — this is not optional syntactically, but callers pass `None` when no clipping is needed (e.g., the watershed shapefile itself). Per philosophy.md, no silent default: callers must be explicit. If clipping is computationally expensive for large files (e.g., Virginia statewide buildings shapefile), the clip result should be saved to `output_dir/preprocessed/` and referenced by a dedicated Snakemake pre-processing rule that downstream rules depend on.
-- **Integer variable names in time series NetCDFs** (`156`, `171`, `170`, `155`, `140`, `141`): These appear to be rain gage station IDs or SWMM node IDs. Their meaning must be confirmed (see data tracking checklist in `00_case_study_yaml_setup.md`) before designing the NetCDF read functions, as the naming convention affects how variables are indexed and passed downstream.
+- **Integer variable names in time series NetCDFs** (`156`, `171`, `170`, `155`, `140`, `141`): These are SWMM subcatchment IDs with assigned rainfall time series. They are not used by the ss-fha library. The domain-wide average rainfall intensity variable `mm_per_hr` is what ss-fha uses for rain event statistics and return period calculations. No special handling is needed in the generic `read_netcdf()` function.
+- **TRITON-SWMM_toolkit I/O functions** (`write_zarr`, `write_netcdf`, `return_dic_zarr_encodings`, `create_mask_from_shapefile` in `TRITON_SWMM_toolkit.utils`) are analogous to functions implemented here but violate this project's design philosophy (default arguments, no `DataError` wrapping, differing signatures). Per philosophy.md, fresh implementations are written for ss-fha, and each is noted in `docs/planning/utility_package_candidates.md` with its toolkit analogue.
 
 ### Success Criteria
 
@@ -74,7 +76,7 @@ Before implementing, inspect:
 
 Write thin, purpose-built I/O functions that wrap xarray, zarr, geopandas, and rasterio. Each function has one job: read or write one data type. No computation logic inside I/O functions.
 
-Where TRITON-SWMM_toolkit has reusable I/O utilities, import them directly rather than duplicating. Document the import source with a comment.
+TRITON-SWMM_toolkit has analogous I/O utilities, but they violate this project's design philosophy (default arguments, no `DataError` wrapping). Fresh ss-fha implementations were written instead, with each documented in `docs/planning/utility_package_candidates.md` alongside its toolkit analogue.
 
 ### Alternatives Considered
 
@@ -111,7 +113,7 @@ Where TRITON-SWMM_toolkit has reusable I/O utilities, import them directly rathe
 
 | Risk | Mitigation |
 |------|-----------|
-| Zarr v2 vs v3 format differences | Pin zarr version in environment; use `zarr_format=2` explicitly in `write_zarr` |
+| Zarr v2 vs v3 format differences | Zarr V3 specification warnings suppressed via `warnings.filterwarnings` in `write_zarr`; `consolidated=False` used on read/write |
 | `delete_zarr` with timeout: directory may be locked by another process | Use polling loop with `timeout_s`; raise `DataError` on timeout |
 | CRS mismatch between shapefile and reference dataset | Re-project shapefile to `crs_epsg` inside `create_mask_from_shapefile` before masking |
 | Rasterization requires matching resolution/extent | Validate reference_ds has spatial coordinates before rasterizing; raise `DataError` if not |
@@ -151,12 +153,13 @@ pytest tests/test_io.py -v
 
 ## Definition of Done
 
-- [ ] `src/ss_fha/io/zarr_io.py` implemented with all four functions
-- [ ] `src/ss_fha/io/netcdf_io.py` implemented
-- [ ] `src/ss_fha/io/gis_io.py` implemented
-- [ ] All functions raise `DataError` (not raw I/O exceptions) on failure
-- [ ] `crs_epsg` is a required argument in `create_mask_from_shapefile` (no default)
-- [ ] All `tests/test_io.py` tests pass with synthetic data
-- [ ] Refactoring status block updated in `_old_code_to_refactor/__utils.py`
-- [ ] `full_codebase_refactor.md` tracking table updated
-- [ ] **Move this document to `../implemented/` once all boxes above are checked**
+- [x] `src/ss_fha/io/zarr_io.py` implemented with all four functions
+- [x] `src/ss_fha/io/netcdf_io.py` implemented
+- [x] `src/ss_fha/io/gis_io.py` implemented
+- [x] All functions raise `DataError` (not raw I/O exceptions) on failure
+- [x] `crs_epsg` is a required argument in `create_mask_from_shapefile` (no default)
+- [x] All `tests/test_io.py` tests pass with synthetic data (21/21)
+- [x] Refactoring status block updated in `_old_code_to_refactor/__utils.py`
+- [x] `full_codebase_refactor.md` tracking table updated
+- [x] New I/O functions added to `docs/planning/utility_package_candidates.md` with TRITON-SWMM_toolkit analogues noted
+- [x] **Moved to `implemented/` 2026-02-25**
