@@ -33,7 +33,7 @@ Review the following documents before making any edits to plans or writing any c
 
 - **No defaults for case-study-specific parameters** (per philosophy.md "Most function arguments should not have defaults"). EPSG, study area bounds, etc. must be explicit.
 - **`n_years_synthesized` is a required top-level field on `SSFHAConfig`** — it is the total number of synthetic years in the weather model run (e.g., 1000 for Norfolk), including years that produced no events. It is NOT derived from the data: the time series only contains years with ≥1 event (954 for Norfolk), so reading `len(ds.year)` would give the wrong value. Users must supply this explicitly. It is the denominator for all return period calculations; a wrong value silently biases every result. There is no default.
-- **`n_years_observed` is a required field when `toggle_ppcct: true`** — it is the total number of years of observed record, including any years with no events. For Norfolk, all 18 observed years have ≥1 event, so `n_years_observed = 18 = len(obs_ds.year)`. However, other case studies may have observed years with no events, so this must be explicit for the same reason as `n_years_synthesized`. It is the denominator for observed return period calculations in PPCCT. There is no default.
+- **`n_years_observed` is a required field on `PPCCTConfig`** — it is the total number of years of observed record, including any years with no events. For Norfolk, all 18 observed years have ≥1 event, so `n_years_observed = 18 = len(obs_ds.year)`. However, other case studies may have observed years with no events, so this must be explicit for the same reason as `n_years_synthesized`. It is the denominator for observed return period calculations in PPCCT. There is no default. Placing it on `PPCCTConfig` (not top-level on `SsfhaConfig`) means its presence is structurally enforced by the toggle — the `@model_validator` only needs to verify `ppcct` is non-None when `toggle_ppcct=True`.
 - **`serial` execution mode is removed** — only `local_concurrent` and `slurm`. Snakemake handles serialization via available resources.
 - **FHA comparison design (resolved)**: Each FHA approach is its own `SSFHAConfig` with a unique `fha_id` and `fha_approach` (`ssfha`, `bds`). The primary config optionally includes `alt_fha_analyses: list[Path]` pointing to alternative configs. `TritonOutputsConfig` holds the `combined` path (primary simulation type) and the optional `observed` path for PPCCT — the surge-only/rain-only variants are separate FHA configs, not fields on a single `TritonOutputsConfig`. See the master plan "Multi-FHA Analysis Design" section.
 - **MCDS is a toggle, not an `fha_approach`**: Because MCDS reuses the stochastic ensemble directly (no separate model inputs), it is implemented as `toggle_mcds: bool` on the primary SSFHA combined config rather than as a standalone FHA approach. A `@model_validator` must raise `ConfigurationError` if `toggle_mcds=True` when `fha_approach != "ssfha"`. See work chunk 00 Decision 3.
@@ -44,53 +44,64 @@ Review the following documents before making any edits to plans or writing any c
 Two top-level models — `SystemConfig` (geographic context, shared across analyses) and `SSFHAConfig` (a discriminated union on `fha_approach`):
 
 ```
-SystemConfig                          # system.yaml — fixed geographic context
-├── crs_epsg: int                     # required; no default
-└── GeospatialConfig                  # all geospatial file paths
+SystemConfig                                      # system.yaml — fixed geographic context
+├── study_area_id: str                            # required; no default
+├── crs_epsg: int                                 # required; no default
+└── geospatial: GeospatialConfig
     ├── watershed: Path
     ├── roads: Path | None
     ├── sidewalks: Path | None
     ├── buildings: Path | None
     ├── parcels: Path | None
-    └── fema_flood_raster: Path | None
+    ├── fema_flood_raster: Path | None = None
+    └── fema_flood_raster_return_period_yr: int | None = None
+    # @model_validator on SystemConfig: raises ConfigurationError if one of
+    # fema_flood_raster / fema_flood_raster_return_period_yr is set without the other
 
-SSFHAConfig = Annotated[              # analysis_*.yaml — discriminated union
+SSFHAConfig = Annotated[                          # analysis_*.yaml — discriminated union
     SsfhaConfig | BdsConfig,
     Field(discriminator="fha_approach")
 ]
 
 SsfhaConfig (fha_approach="ssfha")
 ├── fha_id: str
-├── study_area_config: Path | None    # optional ref to system.yaml; loader merges automatically
-├── n_years_synthesized: int          # required; no default
+├── project_name: str
+├── output_dir: Path | None = None               # loader sets to yaml_path.parent if None
+├── study_area_config: Path | None               # optional ref to system.yaml; loader merges automatically
+├── n_years_synthesized: int                     # required; no default
 ├── return_periods: list[int]
+├── toggle_uncertainty: bool                     # Workflow 2: bootstrap CIs (can be slow locally)
 ├── toggle_mcds: bool
 ├── toggle_ppcct: bool
 ├── toggle_flood_risk: bool
 ├── toggle_design_comparison: bool
-├── alt_fha_analyses: list[Path]      # other analysis YAMLs (bds, surgeonly, etc.)
-├── TritonOutputsConfig               # paths to TRITON zarr outputs
-│   ├── combined: Path                # primary (combined rain+surge) zarr
-│   └── observed: Path | None        # observed events zarr (required if toggle_ppcct)
-├── EventDataConfig                   # event summary CSVs, timeseries dir
-├── PPCCTConfig | None                # required if toggle_ppcct
-├── FloodRiskConfig | None            # required if toggle_flood_risk
-└── ExecutionConfig
-    └── SlurmConfig | None            # required if mode == "slurm"
+├── alt_fha_analyses: list[Path]                 # other analysis YAMLs (bds, surgeonly, etc.)
+├── triton_outputs: TritonOutputsConfig          # paths to TRITON zarr outputs
+│   ├── combined: Path                           # primary (combined rain+surge) zarr
+│   └── observed: Path | None                   # observed events zarr (required if toggle_ppcct)
+├── event_data: EventDataConfig                  # event summary CSVs, timeseries dir
+├── ppcct: PPCCTConfig | None                    # required if toggle_ppcct
+│   ├── n_years_observed: int                    # required; no default
+│   └── ...
+├── flood_risk: FloodRiskConfig | None           # required if toggle_flood_risk
+└── execution: ExecutionConfig
+    └── slurm: SlurmConfig | None                # required if mode == "slurm"
 
 BdsConfig (fha_approach="bds")
 ├── fha_id: str
+├── project_name: str
+├── output_dir: Path | None = None               # loader sets to yaml_path.parent if None
 ├── study_area_config: Path | None
 ├── return_periods: list[int]
-├── toggle_uncertainty: bool
 ├── toggle_ppcct: bool
 ├── toggle_flood_risk: bool
-├── design_storm_output: Path         # scalar — one zarr per BDS config
-├── design_storm_timeseries: Path     # scalar — one timeseries per BDS config
-├── PPCCTConfig | None
-├── FloodRiskConfig | None
-└── ExecutionConfig
-    └── SlurmConfig | None
+├── design_storm_output: Path                    # scalar — one zarr per BDS config
+├── design_storm_timeseries: Path               # scalar — one timeseries per BDS config
+├── ppcct: PPCCTConfig | None
+├── flood_risk: FloodRiskConfig | None
+└── execution: ExecutionConfig
+    └── slurm: SlurmConfig | None
+# Note: no toggle_uncertainty — BDS has no ensemble to bootstrap
 ```
 
 **Discriminator pattern**: `fha_approach: Literal["ssfha"]` on `SsfhaConfig` and `fha_approach: Literal["bds"]` on `BdsConfig`. Pydantic v2 `Annotated[..., Field(discriminator="fha_approach")]` selects the correct model at parse time — no custom validator needed.
@@ -98,7 +109,7 @@ BdsConfig (fha_approach="bds")
 ### Toggle Validation
 
 When `toggle_ppcct=True`, a `@model_validator` must verify:
-- `ppcct` config section is present
+- `ppcct` config section is present (structural enforcement — `n_years_observed` is required on `PPCCTConfig`, so its presence is automatically validated)
 - `triton_outputs.observed` path is set
 - `event_data.obs_event_summaries` path is set
 
@@ -262,7 +273,9 @@ print(f'OK: system.yaml -> crs_epsg={cfg.crs_epsg}')
 - [ ] `src/ss_fha/config/model.py` implemented: `SystemConfig`, `SsfhaConfig`, `BdsConfig`, `SSFHAConfig` discriminated union, all sub-models
 - [ ] `src/ss_fha/config/loader.py` implemented: `load_system_config`, `load_config`, `load_config_from_dict`, template filling, system-merge logic
 - [ ] `GeospatialConfig` is on `SystemConfig`, not on analysis config models
+- [ ] `GeospatialConfig` has `fema_flood_raster: Path | None = None` and `fema_flood_raster_return_period_yr: int | None = None`; `@model_validator` on `SystemConfig` raises `ConfigurationError` if one is set without the other
 - [ ] `study_area_config: Path | None` field on both `SsfhaConfig` and `BdsConfig`; `load_config` merges system YAML automatically when present
+- [ ] `project_name: str` and `output_dir: Path | None = None` on both `SsfhaConfig` and `BdsConfig`; loader sets `output_dir` to `yaml_path.parent` when None
 - [ ] `SSFHAConfig` is a Pydantic v2 discriminated union on `fha_approach` (`SsfhaConfig | BdsConfig`)
 - [ ] Toggle validation accumulates errors before raising
 - [ ] `serial` execution mode removed from `ExecutionConfig`
@@ -270,6 +283,9 @@ print(f'OK: system.yaml -> crs_epsg={cfg.crs_epsg}')
 - [ ] `TritonOutputsConfig` uses field name `combined` (not `compound`) for the primary simulation zarr path
 - [ ] `fha_approach` is `Literal["ssfha", "bds"]` — `mcds` is NOT a separate approach; MCDS is `toggle_mcds: bool` on `SsfhaConfig`
 - [ ] `toggle_mcds` validator raises `ConfigurationError` if `toggle_mcds=True` and `fha_approach != "ssfha"`
+- [ ] `toggle_uncertainty: bool` is on `SsfhaConfig` only — `BdsConfig` has no uncertainty toggle (no ensemble to bootstrap)
+- [ ] `n_years_observed` is a required field on `PPCCTConfig`, not top-level on `SsfhaConfig`
+- [ ] `BdsConfig` has no `toggle_uncertainty` field
 - [ ] All Phase 1B tests pass (both SsfhaConfig and BdsConfig smoke tests pass)
 - [ ] Refactoring status block updated in `_old_code_to_refactor/__inputs.py`
 - [ ] `full_codebase_refactor.md` tracking table updated

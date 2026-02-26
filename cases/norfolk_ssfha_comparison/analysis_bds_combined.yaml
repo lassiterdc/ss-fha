@@ -1,7 +1,3 @@
-# PROVISIONAL — field names subject to change when SSFHAConfig (01B) is implemented.
-# Validate all fields against SSFHAConfig when 01B is complete.
-# 01B Definition of Done must include loading this file as a smoke test.
-#
 # Basic Design Storm (BDS), combined drivers (rain + surge): deterministic flood hazard
 # using one design storm event per return period. 24-hr rain duration.
 # No stochastic ensemble; no bootstrap uncertainty; no PPCCT.
@@ -29,7 +25,7 @@ design_storm_output: /mnt/d/Dropbox/_GradSchool/repos/ss-fha/hydroshare_data/mod
 design_storm_timeseries: /mnt/d/Dropbox/_GradSchool/repos/ss-fha/hydroshare_data/events/design_storm_combined.nc
 
 # --- Workflow toggles ---
-toggle_uncertainty: false  # BDS has no ensemble; bootstrap uncertainty not applicable.
+# Note: no toggle_uncertainty — BDS has no ensemble to bootstrap.
 toggle_ppcct: false        # PPCCT requires a stochastic ensemble — not applicable to BDS.
 toggle_flood_risk: true    # Impact assessment on BDS flood maps is valid.
 toggle_design_comparison: false  # Comparison is driven by the primary combined config.

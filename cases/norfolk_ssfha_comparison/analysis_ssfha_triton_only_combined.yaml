@@ -1,7 +1,3 @@
-# PROVISIONAL — field names subject to change when SSFHAConfig (01B) is implemented.
-# Validate all fields against SSFHAConfig when 01B is complete.
-# 01B Definition of Done must include loading this file as a smoke test.
-#
 # TRITON-only (no SWMM coupling), combined drivers: both rainfall and storm tide active,
 # but the SWMM urban drainage model is NOT coupled — 2D TRITON model only.
 # Comparison with the SWMM-coupled combined config quantifies the contribution of

@@ -1,5 +1,3 @@
-# PROVISIONAL — field names subject to change when SSFHAConfig (01B) is implemented.
-# Validate all fields against SSFHAConfig when 01B is complete.
 # study_area YAMLs hold parameters that are fixed properties of the geographic
 # study area — independent of any particular analysis method or weather dataset.
 # This includes the CRS and all geospatial input files.
@@ -37,9 +35,10 @@ geospatial:
   parcels: /mnt/d/Dropbox/_GradSchool/repos/ss-fha/hydroshare_data/geospatial/Parcel_Boundaries/Parcel_Boundaries.shp
   # Clipping status unknown. CRS: TODO — verify before Phase 6.
 
-  fema_100yr_depths: /mnt/d/Dropbox/_GradSchool/repos/ss-fha/hydroshare_data/geospatial/fema/100yr_depths_m.tif
-  # FEMA 100-yr flood depth raster (meters). CRS: TODO — verify before Phase 6.
+  fema_flood_raster: /mnt/d/Dropbox/_GradSchool/repos/ss-fha/hydroshare_data/geospatial/fema/100yr_depths_m.tif
+  # FEMA flood depth raster (meters). CRS: TODO — verify before Phase 6.
   # Used for design storm comparison (Workflow 5).
+  fema_flood_raster_return_period_yr: 100  # This raster represents the 100-yr return period.
 
   # No aoi.shp — spatial subsetting uses the watershed shapefile directly.
   # SUBAREAS_FOR_COMPUTING_IMPACT_RETURN_PDS was watershed-only in old code.

@@ -1,7 +1,3 @@
-# PROVISIONAL — field names subject to change when SSFHAConfig (01B) is implemented.
-# Validate all fields against SSFHAConfig when 01B is complete.
-# 01B Definition of Done must include loading this file as a smoke test.
-
 fha_id: ssfha_combined          # Unique ID. Used as Snakemake wildcard and output
                                  # directory name. Alphanumeric + underscores only.
 fha_approach: ssfha              # "ssfha" | "bds"
@@ -24,14 +20,6 @@ n_years_synthesized: 1000  # Total synthetic years in the weather model run, INC
                             # TODO: Confirm against TRITON-SWMM_toolkit weather model
                             #       run metadata before Phase 6 validation.
 
-n_years_observed: 18       # Total years of observed record INCLUDING any years with no events.
-                            # For Norfolk all 18 observed years have ≥1 event, so
-                            # len(obs_ds.year) == 18 here — but other case studies may
-                            # have event-free observed years. Always set explicitly.
-                            # Denominator for observed return period calculations in PPCCT.
-                            # Source: obs_event_tseries_from_yrs_with_complete_coverage.nc
-                            #         year dim = 18 (confirmed 2026-02-25).
-
 # --- Return periods ---
 return_periods: [1, 2, 10, 100]
 
@@ -51,7 +39,7 @@ triton_outputs:
 # zarr above). It is NOT a separate fha_approach — it is a post-processing variant.
 # Three formulations: multivariate AND, multivariate OR, univariate.
 # Outputs: mcds_return_pd_floods_multivar.nc, ..._multivar_OR.nc, ..._univar.nc
-# Only valid when fha_approach: ssfha. 01B validator must raise ConfigurationError
+# Only valid when fha_approach: ssfha. Validator raises ConfigurationError
 # if toggle_mcds=True on a non-ssfha config.
 # Standalone MCDS (independent stochastic event generation) is a shelved future
 # improvement — see full_codebase_refactor.md.
@@ -93,6 +81,17 @@ toggle_uncertainty: true       # Workflow 2: bootstrap flood depth CIs
 toggle_ppcct: true             # Workflow 3: PPCCT validation vs. observed
 toggle_flood_risk: true        # Workflow 4: building/road impact assessment
 toggle_design_comparison: true # Workflow 5: FHA comparison (requires alt_fha_analyses)
+
+# --- PPCCT configuration ---
+# n_years_observed lives here because it is only meaningful in PPCCT context.
+ppcct:
+  n_years_observed: 18  # Total years of observed record INCLUDING any years with no events.
+                         # For Norfolk all 18 observed years have ≥1 event, so
+                         # len(obs_ds.year) == 18 here — but other case studies may
+                         # have event-free observed years. Always set explicitly.
+                         # Denominator for observed return period calculations in PPCCT.
+                         # Source: obs_event_tseries_from_yrs_with_complete_coverage.nc
+                         #         year dim = 18 (confirmed 2026-02-25).
 
 # --- Execution ---
 execution:

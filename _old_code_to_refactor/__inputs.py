@@ -1,23 +1,25 @@
 # %% user inputs
 # =============================================================================
-# REFACTORING STATUS (chunk 01A — 2026-02-25)
+# REFACTORING STATUS (chunk 01B — 2026-02-25)
 # =============================================================================
-# STATUS: PARTIAL — constants migrated; Pydantic config model pending (01B)
+# STATUS: PARTIAL — constants and Pydantic config model migrated; paths pending (01C+)
 #
-# Migrated to src/ss_fha/config/defaults.py:
+# Migrated to src/ss_fha/config/defaults.py (chunk 01A):
 #   RETURN_PERIODS             → DEFAULT_RETURN_PERIODS
 #   N_BS_SAMPLES               → DEFAULT_N_BOOTSTRAP_SAMPLES
 #   ALPHA, BETA                → DEFAULT_PLOTTING_POSITION_METHOD
 #   LST_KEY_FLOOD_THRESHOLDS   → DEFAULT_DEPTH_THRESHOLDS_M
 #   FLD_RTRN_PD_ALPHA          → DEFAULT_BOOTSTRAP_CI_ALPHA
 #
-# NOT migrated (Norfolk-specific or case-study-level values):
-#   COORD_EPSG                 → cases/norfolk_ssfha_comparison/system.yaml
-#   N_YEARS_SYNTHESIZED        → required field on SSFHAConfig (01B)
-#   All directory/file paths   → SSFHAConfig + paths.py (01B+)
-#   PLOT_PARAMS, plot colors   → plotting subpackage (later chunk)
-#   TIMESERIES_BUFFER_BEFORE_FIRST_RAIN_H — BDS-specific, not a default
-#   TARGET_DESIGN_STORM_DURATION_HRS_FOR_COMPARISON — BDS-specific
+# Migrated to src/ss_fha/config/model.py + cases/norfolk_ssfha_comparison/ (chunk 01B):
+#   COORD_EPSG                 → system.yaml (crs_epsg: 32147)
+#   N_YEARS_SYNTHESIZED        → analysis_ssfha_combined.yaml (n_years_synthesized: 1000)
+#   All directory/file paths   → analysis_*.yaml and system.yaml
+#
+# NOT migrated (pending):
+#   PLOT_PARAMS, plot colors   → visualization subpackage (later chunk)
+#   TIMESERIES_BUFFER_BEFORE_FIRST_RAIN_H — BDS-specific field (later chunk)
+#   TARGET_DESIGN_STORM_DURATION_HRS_FOR_COMPARISON — BDS-specific (later chunk)
 # =============================================================================
 import pandas as pd
 from pathlib import Path
