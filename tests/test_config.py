@@ -854,3 +854,90 @@ def test_synthetic_test_case_builds(tmp_path):
         f"'precip_depth_mm' missing from summaries. Columns: {list(df.columns)}"
     )
     assert len(df) == 10, f"Expected 10 events, got {len(df)}"
+
+
+# ===========================================================================
+# Phase 1G — Case study config infrastructure
+# ===========================================================================
+
+_TEMPLATE_PATH = (
+    Path(__file__).parents[1]
+    / "src" / "ss_fha" / "examples" / "config_templates" / "norfolk_default.yaml"
+)
+
+
+def test_catalog_import_raises_before_id_populated():
+    """NORFOLK_HYDROSHARE_RESOURCE_ID() raises ConfigurationError before ID is set."""
+    import pytest
+    from ss_fha.examples.case_study_catalog import NORFOLK_HYDROSHARE_RESOURCE_ID
+    from ss_fha.exceptions import ConfigurationError
+
+    with pytest.raises(ConfigurationError) as exc_info:
+        NORFOLK_HYDROSHARE_RESOURCE_ID()
+    assert "HydroShare" in str(exc_info.value)
+    assert "06A" in str(exc_info.value)
+
+
+def test_catalog_registry_has_norfolk():
+    """CASE_STUDY_REGISTRY contains the norfolk_ssfha_comparison entry."""
+    from ss_fha.examples.case_study_catalog import CASE_STUDY_REGISTRY
+
+    assert "norfolk_ssfha_comparison" in CASE_STUDY_REGISTRY
+    entry = CASE_STUDY_REGISTRY["norfolk_ssfha_comparison"]
+    assert "hydroshare_resource_id_fn" in entry
+    assert "config_template" in entry
+    assert entry["config_template"] == "norfolk_default.yaml"
+
+
+def test_template_fills_and_parses(tmp_path):
+    """norfolk_default.yaml fills correctly and parses as a valid SsfhaConfig.
+
+    Uses a synthetic data_dir that does NOT need to exist — path existence
+    checks are the responsibility of validation.py, not the template/loader.
+    The test verifies that:
+    - All {{data_dir}} placeholders are replaced without raising
+    - The resulting YAML parses as a valid SsfhaConfig via load_config
+    - Key fields survive the round-trip (fha_id, return_periods, ppcct)
+    """
+    import yaml as _yaml
+    from pathlib import Path as _Path
+    from ss_fha.config import load_config, SsfhaConfig
+
+    # Write a fake system.yaml so load_config can merge it
+    fake_data_dir = tmp_path / "hydroshare_data"
+    fake_data_dir.mkdir()
+    (fake_data_dir / "configs").mkdir()
+    system_dict = {
+        "study_area_id": "norfolk_va",
+        "crs_epsg": 32147,
+        "geospatial": {
+            "watershed": str(fake_data_dir / "geospatial" / "watershed.shp"),
+        },
+    }
+    (fake_data_dir / "system.yaml").write_text(_yaml.safe_dump(system_dict))
+
+    cfg = load_config(
+        _TEMPLATE_PATH,
+        placeholders={"data_dir": str(fake_data_dir)},
+    )
+
+    assert isinstance(cfg, SsfhaConfig)
+    assert cfg.fha_id == "ssfha_combined"
+    assert cfg.fha_approach == "ssfha"
+    assert cfg.return_periods == [1, 2, 10, 100]
+    assert cfg.ppcct is not None
+    assert cfg.ppcct.n_years_observed == 18
+    assert cfg.toggle_ppcct is True
+    assert cfg.toggle_mcds is True
+    assert len(cfg.alt_fha_analyses) == 6
+
+
+def test_template_raises_on_unfilled_placeholder():
+    """load_config raises ConfigurationError when placeholders dict is omitted."""
+    import pytest
+    from ss_fha.config import load_config
+    from ss_fha.exceptions import ConfigurationError
+
+    with pytest.raises(ConfigurationError) as exc_info:
+        load_config(_TEMPLATE_PATH)
+    assert "placeholder" in str(exc_info.value).lower()

@@ -1,0 +1,65 @@
+# Norfolk SS-FHA comparison case study — analysis config template (SSFHA combined)
+#
+# Usage: fill {{data_dir}} with the absolute path to the root of the
+# HydroShare data archive (e.g. the directory produced by download_norfolk_case_study()).
+#
+# Pass this file to load_config() with a placeholders dict:
+#   cfg = load_config(template_path, placeholders={"data_dir": "/path/to/data"})
+#
+# All placeholder tokens (double-brace syntax) must be resolved before Pydantic parsing.
+# Unfilled placeholders raise ConfigurationError.
+
+fha_id: ssfha_combined
+fha_approach: ssfha
+project_name: norfolk_ssfha_comparison
+study_area_config: {{data_dir}}/system.yaml
+
+# --- Output directory ---
+output_dir: {{data_dir}}/outputs/norfolk_ssfha_comparison/
+
+# --- Weather record lengths ---
+n_years_synthesized: 1000
+
+# --- Return periods ---
+return_periods: [1, 2, 10, 100]
+
+# --- TRITON model outputs ---
+triton_outputs:
+  combined: {{data_dir}}/model_results/ss_tritonswmm_combined.zarr
+  observed: {{data_dir}}/model_results/obs_tritonswmm_combined.zarr
+
+# --- Monte Carlo Design Storm toggle ---
+toggle_mcds: true
+
+# --- Event data ---
+event_data:
+  sim_event_summaries: {{data_dir}}/events/ss_simulation_summaries.csv
+  sim_event_timeseries: {{data_dir}}/events/ss_simulation_time_series.nc
+  sim_event_iloc_mapping: {{data_dir}}/events/ss_event_iloc_mapping.csv
+  obs_event_summaries: {{data_dir}}/events/obs_event_summaries_from_yrs_with_complete_coverage.csv
+  obs_event_timeseries: {{data_dir}}/events/obs_event_tseries_from_yrs_with_complete_coverage.nc
+  obs_event_iloc_mapping: {{data_dir}}/events/obs_event_iloc_mapping.csv
+
+# --- Workflow toggles ---
+toggle_uncertainty: true
+toggle_ppcct: true
+toggle_flood_risk: true
+toggle_design_comparison: true
+
+# --- PPCCT configuration ---
+ppcct:
+  n_years_observed: 18
+
+# --- Execution ---
+execution:
+  mode: local_concurrent
+  max_workers: 4
+
+# --- Alternative FHA analyses for comparison (Workflow 5) ---
+alt_fha_analyses:
+  - {{data_dir}}/configs/analysis_ssfha_rainonly.yaml
+  - {{data_dir}}/configs/analysis_ssfha_surgeonly.yaml
+  - {{data_dir}}/configs/analysis_ssfha_triton_only_combined.yaml
+  - {{data_dir}}/configs/analysis_bds_combined.yaml
+  - {{data_dir}}/configs/analysis_bds_rainonly.yaml
+  - {{data_dir}}/configs/analysis_bds_surgeonly.yaml
