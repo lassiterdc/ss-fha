@@ -5,7 +5,11 @@
       "Bash(git add:*)",
       "Skill(commit-commands:commit)",
       "Bash(python3:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(conda run:*)",
+      "Bash(/home/dcl3nd/miniconda3/envs/ss-fha/bin/pip list:*)",
+      "Bash(/home/dcl3nd/miniconda3/envs/ss-fha/bin/python:*)"
     ]
   }
 }
