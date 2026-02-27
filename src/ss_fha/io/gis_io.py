@@ -1,39 +1,65 @@
-"""GIS read and masking utilities for ss-fha.
+"""GIS file loading and spatial masking utilities for ss-fha.
 
 All functions raise `ss_fha.exceptions.DataError` on failure.
 
 Design notes
 ------------
-- `read_shapefile` accepts `clip_to: gpd.GeoDataFrame | None`. Callers must
-  pass this argument explicitly — `None` means "no clipping needed" (e.g.,
-  when reading the watershed polygon itself). There is no silent default.
-- `crs_epsg` in `create_mask_from_shapefile` and `rasterize_features` is a
+- ``load_geospatial_data_from_file`` is the canonical loader for any OGR-readable
+  vector format. It validates the file extension and is the only place in the
+  codebase that calls ``gpd.read_file`` directly. Supported extensions:
+  ``.shp``, ``.geojson``, ``.json``, ``.gpkg``.
+- Function names never include filetype strings (``shapefile``, ``geojson``,
+  etc.) unless the function is exclusively a file-reading or file-writing
+  operation. ``load_geospatial_data_from_file`` is the sole exception.
+- ``create_mask_from_polygon`` accepts a file path, a GeoDataFrame, a
+  GeoSeries, or a Shapely geometry — callers do not need to pre-load data.
+- ``crs_epsg`` in ``create_mask_from_polygon`` and ``rasterize_features`` is a
   required argument. CRS reprojection happens inside these functions so callers
   do not need to manage CRS alignment manually.
-- All spatial operations assume the reference dataset has `x` and `y`
-  coordinates and a valid `rio` (rioxarray) accessor.
+- All spatial operations assume the reference dataset has ``x`` and ``y``
+  coordinates and a valid ``rio`` (rioxarray) accessor.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING, Union
 
 import geopandas as gpd
 import xarray as xr
 
 from ss_fha.exceptions import DataError
 
+if TYPE_CHECKING:
+    from shapely.geometry.base import BaseGeometry
 
-def read_shapefile(
-    path: Path,
+# Supported geospatial file extensions for load_geospatial_data_from_file.
+# Update this set when adding support for new formats.
+_SUPPORTED_GEO_EXTENSIONS = {".shp", ".geojson", ".json", ".gpkg"}
+
+# Type alias for the range of geometry inputs accepted by create_mask_from_polygon
+GeometryInput = Union[
+    Path,
+    str,
+    gpd.GeoDataFrame,
+    gpd.GeoSeries,
+    "BaseGeometry",
+]
+
+
+def load_geospatial_data_from_file(
+    path: Path | str,
     clip_to: gpd.GeoDataFrame | None,
 ) -> gpd.GeoDataFrame:
-    """Read a shapefile (or any OGR-readable vector file) into a GeoDataFrame.
+    """Load a vector geospatial file into a GeoDataFrame.
+
+    This is the canonical loader for all geospatial file input in ss-fha.
+    Supported formats: ``.shp``, ``.geojson``, ``.json``, ``.gpkg``.
 
     Parameters
     ----------
     path:
-        Path to the shapefile (or GeoPackage, GeoJSON, etc.).
+        Path to the geospatial file.
     clip_to:
         If provided, clip the loaded GeoDataFrame to the bounding geometry of
         this GeoDataFrame before returning. The clip is performed in the CRS of
@@ -48,13 +74,24 @@ def read_shapefile(
     Raises
     ------
     DataError
-        If the file does not exist, cannot be read, or clipping fails.
+        If the extension is not supported, the file does not exist, cannot be
+        read, or clipping fails.
     """
     path = Path(path)
 
+    if path.suffix.lower() not in _SUPPORTED_GEO_EXTENSIONS:
+        raise DataError(
+            operation="load geospatial data from file",
+            filepath=path,
+            reason=(
+                f"Unsupported file extension '{path.suffix}'. "
+                f"Supported extensions: {sorted(_SUPPORTED_GEO_EXTENSIONS)}"
+            ),
+        )
+
     if not path.exists():
         raise DataError(
-            operation="read shapefile",
+            operation="load geospatial data from file",
             filepath=path,
             reason="Path does not exist.",
         )
@@ -63,7 +100,7 @@ def read_shapefile(
         gdf = gpd.read_file(path)
     except Exception as e:
         raise DataError(
-            operation="read shapefile",
+            operation="load geospatial data from file",
             filepath=path,
             reason=str(e),
         ) from e
@@ -77,7 +114,7 @@ def read_shapefile(
             gdf = gdf.to_crs(original_crs)
         except Exception as e:
             raise DataError(
-                operation="clip shapefile",
+                operation="clip geospatial data",
                 filepath=path,
                 reason=str(e),
             ) from e
@@ -85,81 +122,126 @@ def read_shapefile(
     return gdf
 
 
-def create_mask_from_shapefile(
-    shapefile_path: Path,
+def create_mask_from_polygon(
+    polygon: GeometryInput,
     reference_ds: xr.Dataset,
     crs_epsg: int,
 ) -> xr.DataArray:
-    """Create a boolean DataArray mask from a shapefile polygon.
+    """Create a boolean DataArray mask from a polygon geometry.
 
-    The shapefile is re-projected to ``crs_epsg`` before masking to ensure
-    alignment with the reference dataset's spatial transform. Cells inside
-    any polygon are ``True``; cells outside are ``False``.
+    Cells inside any polygon are ``True``; cells outside are ``False``.
+    The input geometry is re-projected to ``crs_epsg`` before masking to
+    ensure alignment with the reference dataset's spatial transform.
 
     Parameters
     ----------
-    shapefile_path:
-        Path to the shapefile whose polygons define the mask.
+    polygon:
+        The polygon(s) defining the mask. Accepts any of:
+
+        - A ``Path`` or ``str`` file path to a supported geospatial file
+          (``.shp``, ``.geojson``, ``.json``, ``.gpkg``). The file is loaded
+          via ``load_geospatial_data_from_file`` (no clipping).
+        - A ``gpd.GeoDataFrame`` — all features are used.
+        - A ``gpd.GeoSeries`` — all geometries are used.
+        - A Shapely ``Polygon`` or ``MultiPolygon`` geometry.
+
     reference_ds:
         xarray Dataset with ``x`` and ``y`` coordinates and a valid
         ``rio`` accessor (requires rioxarray).
     crs_epsg:
-        EPSG code of the CRS used by ``reference_ds``. The shapefile will
-        be re-projected to this CRS before masking.
+        EPSG code of the CRS used by ``reference_ds``. The input geometry
+        will be re-projected to this CRS before masking.
 
     Returns
     -------
     xr.DataArray
         Boolean DataArray with the same ``x``/``y`` coordinates as
-        ``reference_ds``, with ``True`` inside the shapefile polygons.
+        ``reference_ds``, with ``True`` inside the polygon(s).
 
     Raises
     ------
     DataError
-        If the shapefile cannot be read, if ``reference_ds`` lacks the
-        expected spatial coordinates/accessor, or if masking fails.
+        If the input type is unsupported, the file cannot be read, if
+        ``reference_ds`` lacks the expected spatial coordinates/accessor,
+        or if masking fails.
     """
     import rasterio.features
     from shapely.geometry import mapping
+    from shapely.geometry.base import BaseGeometry
 
-    shapefile_path = Path(shapefile_path)
+    # Resolve input to a list of Shapely geometries in some CRS, then reproject.
+    # For file path and GeoDataFrame inputs we can reproject via geopandas.
+    # For bare Shapely geometries we assume the caller has already matched CRS
+    # (no CRS metadata is available on a bare geometry).
+    source_label = "<geometry>"
 
-    try:
-        gdf = gpd.read_file(shapefile_path)
-    except Exception as e:
+    if isinstance(polygon, (str, Path)):
+        source_label = str(polygon)
+        gdf = load_geospatial_data_from_file(Path(polygon), clip_to=None)
+        try:
+            gdf = gdf.to_crs(epsg=crs_epsg)
+        except Exception as e:
+            raise DataError(
+                operation="reproject polygon to crs_epsg",
+                filepath=Path(polygon),
+                reason=str(e),
+            ) from e
+        geometries = list(gdf.geometry)
+
+    elif isinstance(polygon, gpd.GeoDataFrame):
+        try:
+            gdf = polygon.to_crs(epsg=crs_epsg)
+        except Exception as e:
+            raise DataError(
+                operation="reproject GeoDataFrame to crs_epsg",
+                filepath=Path(source_label),
+                reason=str(e),
+            ) from e
+        geometries = list(gdf.geometry)
+
+    elif isinstance(polygon, gpd.GeoSeries):
+        try:
+            gs = polygon.to_crs(epsg=crs_epsg)
+        except Exception as e:
+            raise DataError(
+                operation="reproject GeoSeries to crs_epsg",
+                filepath=Path(source_label),
+                reason=str(e),
+            ) from e
+        geometries = list(gs)
+
+    elif isinstance(polygon, BaseGeometry):
+        # Bare Shapely geometry — no CRS metadata available; caller is
+        # responsible for providing a geometry already in crs_epsg.
+        geometries = [polygon]
+
+    else:
         raise DataError(
-            operation="read shapefile for masking",
-            filepath=shapefile_path,
-            reason=str(e),
-        ) from e
-
-    try:
-        gdf = gdf.to_crs(epsg=crs_epsg)
-    except Exception as e:
-        raise DataError(
-            operation="reproject shapefile to crs_epsg",
-            filepath=shapefile_path,
-            reason=str(e),
-        ) from e
+            operation="create mask from polygon",
+            filepath=Path(source_label),
+            reason=(
+                f"Unsupported polygon input type: {type(polygon).__name__}. "
+                "Expected a file path, GeoDataFrame, GeoSeries, or Shapely geometry."
+            ),
+        )
 
     # Validate spatial structure of reference dataset
     for coord in ("x", "y"):
         if coord not in reference_ds.coords:
             raise DataError(
-                operation="create mask from shapefile",
-                filepath=shapefile_path,
+                operation="create mask from polygon",
+                filepath=Path(source_label),
                 reason=(
                     f"reference_ds is missing '{coord}' coordinate. "
                     "Dataset must have x and y spatial coordinates."
                 ),
             )
 
-    # Use the first data variable to get a representative DataArray
     first_var = next(iter(reference_ds.data_vars))
     da_ref = reference_ds[first_var]
 
     try:
-        shapes = [mapping(geom) for geom in gdf.geometry]
+        shapes = [mapping(geom) for geom in geometries]
         mask_array = rasterio.features.geometry_mask(
             shapes,
             transform=da_ref.rio.transform(),
@@ -168,20 +250,16 @@ def create_mask_from_shapefile(
         )
     except Exception as e:
         raise DataError(
-            operation="rasterize shapefile geometry for mask",
-            filepath=shapefile_path,
+            operation="rasterize polygon geometry for mask",
+            filepath=Path(source_label),
             reason=str(e),
         ) from e
 
-    # Build a DataArray with the same x/y coordinates
-    import numpy as np
-
-    mask_da = xr.DataArray(
+    return xr.DataArray(
         mask_array,
         dims=["y", "x"],
         coords={"y": reference_ds.y, "x": reference_ds.x},
     )
-    return mask_da
 
 
 def rasterize_features(
@@ -220,7 +298,6 @@ def rasterize_features(
         If ``field`` is not found in ``gdf``, if ``reference_ds`` lacks
         spatial coordinates, or if rasterization fails.
     """
-    import numpy as np
     import rasterio.features
     from shapely.geometry import mapping
 

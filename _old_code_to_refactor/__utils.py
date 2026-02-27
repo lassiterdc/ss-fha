@@ -1,16 +1,17 @@
 # %%
 # =============================================================================
 # REFACTORING STATUS (ss-fha full_codebase_refactor)
-# Last updated: 2026-02-26 (updated for 02C)
+# Last updated: 2026-02-26 (updated for 02D)
 #
-# I/O FUNCTIONS — migrated to src/ss_fha/io/ (Phase 1D, complete)
+# I/O FUNCTIONS — migrated to src/ss_fha/io/ (Phase 1D, complete; updated 02D)
 #   write_zarr()                  → ss_fha.io.zarr_io.write_zarr
 #   delete_zarr()                 → ss_fha.io.zarr_io.delete_zarr
 #   return_dic_zarr_encodingds()  → ss_fha.io.zarr_io.default_zarr_encoding
 #   write_compressed_netcdf()     → ss_fha.io.netcdf_io.write_compressed_netcdf
-#   create_mask_from_shapefile()  → ss_fha.io.gis_io.create_mask_from_shapefile
+#   create_mask_from_shapefile()  → ss_fha.io.gis_io.create_mask_from_polygon  [renamed + broadened in 02D]
 #   create_flood_metric_mask()    → ss_fha.io.gis_io.rasterize_features
-#   (read_zarr, read_netcdf, read_shapefile are new — no old equivalent)
+#   (read_zarr, read_netcdf are new — no old equivalent)
+#   (read_shapefile → ss_fha.io.gis_io.load_geospatial_data_from_file [new, canonical loader, 02D])
 #
 # CORE COMPUTATION FUNCTIONS — migrated in Phase 2A
 #   calculate_positions()             → ss_fha.core.flood_probability.calculate_positions
@@ -57,6 +58,23 @@
 #   prepare_for_bootstrapping()               — orchestration/resume logic; runner layer
 #   write_netcdf_of_ensemble_based_return_period_floods() — I/O; runner layer
 #   write_netcdf_of_mcds_return_period_floods() — I/O; runner layer
+#
+# GEOSPATIAL COMPUTATION FUNCTIONS — migrated to src/ss_fha/core/geospatial.py (Phase 02D)
+#   return_ds_gridsize()          → ss_fha.core.geospatial.grid_cell_size_m  [renamed; raises on non-square]
+#   retrieve_unique_feature_indices() → ss_fha.core.geospatial._retrieve_unique_feature_indices  [private kernel]
+#   return_impacted_features()    → ss_fha.core.geospatial.return_impacted_features  [event_number → event_iloc]
+#   compute_number_of_unique_indices() → ss_fha.core.geospatial._count_impacted_features  [private kernel]
+#   return_number_of_impacted_features() → ss_fha.core.geospatial.return_number_of_impacted_features
+#   compute_min_rtrn_pd_of_impact_for_unique_features()
+#                                 → ss_fha.core.geospatial.compute_min_return_period_of_feature_impact
+#                                   [alpha/beta now explicit; ensemble→is_ss not applicable here]
+#   return_mask_dataset_from_polygon() — superseded by ss_fha.io.gis_io.create_mask_from_polygon (already xr.DataArray)
+#
+#   NOT MIGRATED (deferred to Phase 3F — orchestration):
+#   compute_flood_impact_return_periods()  — analysis/flood_risk.py (Phase 3F)
+#   compute_floodarea_retrn_pds()          — analysis/flood_risk.py (Phase 3F)
+#   compute_volume_at_max_flooding()       — analysis/flood_risk.py (Phase 3F)
+#   compute_flooded_area_by_depth_threshold() — analysis/flood_risk.py (Phase 3F)
 # =============================================================================
 
 import xarray as xr

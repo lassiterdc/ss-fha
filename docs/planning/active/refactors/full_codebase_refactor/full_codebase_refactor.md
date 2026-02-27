@@ -215,13 +215,14 @@ src/ss_fha/
         __init__.py
         zarr_io.py                 # Zarr read/write with encoding configs
         netcdf_io.py               # NetCDF read/write with compression
-        gis_io.py                  # Shapefile/raster loading and masking
+        gis_io.py                  # Geospatial file loading (load_geospatial_data_from_file) and masking/rasterization (create_mask_from_polygon, rasterize_features)
 
     core/
         __init__.py
         flood_probability.py       # CDF computation, return periods, plotting positions
         bootstrapping.py           # Bootstrap sampling, combining, quantile analysis
-        return_periods.py          # Univariate/multivariate event return periods
+        empirical_frequency_analysis.py  # Domain-agnostic empirical frequency/return period primitives (calculate_positions, calculate_return_period — split from flood_probability.py in a dedicated refactor commit)
+        event_statistics.py        # Univariate/multivariate event return periods (was return_periods.py in earlier plan drafts)
         geospatial.py              # Masking, rasterization, feature impact computation
 
     analysis/
@@ -321,7 +322,7 @@ Additionally, maintain a tracking table in this planning document (updated after
 | Old File | Status | Migrated To | Phase |
 |----------|--------|------------|-------|
 | `__inputs.py` | PARTIAL (01A + 01B done — constants and Pydantic config model migrated; paths pending 01C) | `config/model.py`, `config/defaults.py`, `paths.py` | 1 |
-| `__utils.py` | IN PROGRESS — I/O (1D), flood probability (2A), bootstrap computation kernel (2B), event statistics (2C) migrated; combine/QA deferred to 3B runner; remaining computation pending 2D | `core/*`, `io/*` | 1D, 2, 3B |
+| `__utils.py` | IN PROGRESS — I/O (1D, updated 2D: canonical loader + mask rename), flood probability (2A), bootstrap kernel (2B), event statistics (2C), geospatial primitives (2D) migrated; orchestration functions (flood impact/area return periods) deferred to 3F; combine/QA deferred to 3B | `core/*`, `io/*` | 1D, 2A–2D, 3B, 3F |
 | `__plotting.py` | NOT STARTED | `visualization/*` | 5 |
 | `b1_analyze_triton_outputs_fld_prob_calcs.py` | NOT STARTED | `analysis/flood_hazard.py` | 3A |
 | `b2b_sim_vs_obs_flod_ppct.py` | NOT STARTED | `analysis/ppcct.py` | 3D |
@@ -775,16 +776,51 @@ Extract from `__utils.py`:
 
 **Tests**: Known event sets with pre-computed return periods.
 
-#### Phase 2D: `core/geospatial.py`
-Extract from `__utils.py`:
-- `create_mask_from_shapefile()`
-- `return_mask_dataset_from_polygon()`
-- `return_impacted_features()`
-- `create_flood_metric_mask()`
-- `compute_floodarea_retrn_pds()`
-- `compute_flood_impact_return_periods()`
+#### Phase 2D: `core/geospatial.py` + `io/gis_io.py` updates
 
-**Tests**: Synthetic geometries with known overlap areas.
+**`io/gis_io.py` changes (prerequisite to the core module):**
+- Rename `read_shapefile()` → superseded by `load_geospatial_data_from_file(path, clip_to)`, the canonical loader for any OGR-readable vector format (`.shp`, `.geojson`, `.json`, `.gpkg`). Validates file extension.
+- Rename `create_mask_from_shapefile()` → `create_mask_from_polygon()`. Accepts a file path (calls `load_geospatial_data_from_file` internally), or a `gpd.GeoDataFrame`, or a `gpd.GeoSeries`/Shapely geometry — no filetype-specific name in non-I/O functions.
+- Validation layer: any `SsfhaConfig` geospatial file path field must validate that the extension is a recognized OGR format (`.shp`, `.geojson`, `.json`, `.gpkg`).
+- **Rule**: Function names must not include filetype strings (`shapefile`, `geojson`, etc.) unless the function is exclusively a file-reading/writing operation.
+
+**New `core/geospatial.py` — pure spatial computation on in-memory objects:**
+Extract from `__utils.py` (spatial primitives only — orchestration functions deferred to Phase 3F):
+- `return_mask_dataset_from_polygon()` — wraps `create_mask_from_polygon()` to return a boolean xr.DataArray; superseded by the new gis_io function but ported as a thin adapter if still needed
+- `retrieve_unique_feature_indices()` — helper for `return_impacted_features()`
+- `return_impacted_features()` — identifies features within flood depth threshold via xarray ufunc
+- `compute_number_of_unique_indices()` — helper
+- `return_number_of_impacted_features()` — helper
+- `compute_min_rtrn_pd_of_impact_for_unique_features()` — per-feature minimum return period
+- `return_ds_gridsize()` — grid cell size utility (2-line spatial utility; needed by flood volume/area functions)
+
+**Deferred to Phase 3F** (orchestration — combine spatial primitives with return period computation):
+- `compute_flood_impact_return_periods()` — ported to `analysis/flood_risk.py`
+- `compute_floodarea_retrn_pds()` — ported to `analysis/flood_risk.py`
+- `compute_volume_at_max_flooding()` — uses domain constant `LST_KEY_FLOOD_THRESHOLDS`; ported to Phase 3F
+- `compute_flooded_area_by_depth_threshold()` — uses domain constant `LST_KEY_FLOOD_THRESHOLDS`; ported to Phase 3F
+
+**Already migrated in Phase 1D (not to be re-ported):**
+- `create_mask_from_shapefile()` → `gis_io.create_mask_from_polygon()` (renamed above)
+- `create_flood_metric_mask()` → `gis_io.rasterize_features()`
+
+**Vocabulary note**: The `ensemble` flag in the old `compute_flood_impact_return_periods()` and `compute_floodarea_retrn_pds()` distinguishes SSFHA (semicontinuous simulation) from BDS (design storm) branches. When porting to Phase 3F, rename `ensemble` → `is_ss` per philosophy.md terminology.
+
+**Tests**: Synthetic geometries with known overlap areas; verify `create_mask_from_polygon` with file path, GeoDataFrame, and geometry inputs.
+
+#### Phase 2E: `core/empirical_frequency_analysis.py` — extract domain-agnostic primitives
+
+**Goal**: Split `calculate_positions()` and `calculate_return_period()` out of `core/flood_probability.py` into a new `core/empirical_frequency_analysis.py`. These functions are domain-agnostic (no flood hydrology, no SWMM, no project context) and are used by both `flood_probability.py` and `event_statistics.py`.
+
+**Scope**:
+- Move `calculate_positions()` and `calculate_return_period()` to `empirical_frequency_analysis.py`
+- Update all internal imports (`flood_probability.py`, `event_statistics.py`, any tests) to import from the new module
+- Consider whether any other candidates in `flood_probability.py` are truly domain-agnostic (e.g., `compute_emp_cdf_and_return_pds` uses flood-specific conventions — likely stays in `flood_probability.py`)
+- Add both moved functions to `docs/planning/utility_package_candidates.md`
+
+**Timing**: This is a pure internal refactor with no new functionality. It should be done as a single dedicated commit after all existing tests pass. Run the full test suite before and after to confirm no regressions.
+
+**Work chunk**: `work_chunks/02E_empirical_frequency_analysis.md` (to be created when this phase begins)
 
 #### Phase 2 Definition of Done
 
@@ -838,6 +874,12 @@ Replaces: `f1_*`, `f2_*` scripts
 - Impact assessment on buildings, roads, parcels by AOI
 - Only runs when `toggle_flood_risk=True`
 - Depends on Workflow 1 outputs; optionally uses Workflow 2 CIs
+- **Pre-ported from Phase 2D** (moved here because they are orchestration, not pure computation):
+  - `compute_flood_impact_return_periods()` from `__utils.py`
+  - `compute_floodarea_retrn_pds()` from `__utils.py`
+  - `compute_volume_at_max_flooding()` from `__utils.py`
+  - `compute_flooded_area_by_depth_threshold()` from `__utils.py`
+- **Vocabulary**: The old `ensemble` parameter in these functions indicates SSFHA (semicontinuous simulation) vs. BDS (design storm). Rename to `is_ss: bool` on porting. A single analysis run is always one approach; branching on `is_ss` is fine if the two paths share substantial logic, otherwise split into separate functions. Recommend seeking agent input on the best structure when Phase 3F planning begins.
 
 #### Phase 3 Definition of Done
 

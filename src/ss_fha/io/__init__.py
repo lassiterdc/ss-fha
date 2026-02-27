@@ -7,9 +7,9 @@ All functions raise `ss_fha.exceptions.DataError` on failure.
 """
 
 from ss_fha.io.gis_io import (
-    create_mask_from_shapefile,
+    create_mask_from_polygon,
+    load_geospatial_data_from_file,
     rasterize_features,
-    read_shapefile,
 )
 from ss_fha.io.netcdf_io import read_netcdf, write_compressed_netcdf
 from ss_fha.io.zarr_io import (
@@ -26,7 +26,7 @@ __all__ = [
     "default_zarr_encoding",
     "write_compressed_netcdf",
     "read_netcdf",
-    "read_shapefile",
-    "create_mask_from_shapefile",
+    "load_geospatial_data_from_file",
+    "create_mask_from_polygon",
     "rasterize_features",
 ]

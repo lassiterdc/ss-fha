@@ -80,12 +80,12 @@ def watershed_shapefile(tmp_path, reference_ds_with_crs):
 def test_io_package_importable():
     """ss_fha.io package and all public names are importable."""
     from ss_fha.io import (  # noqa: F401
-        create_mask_from_shapefile,
+        create_mask_from_polygon,
         default_zarr_encoding,
         delete_zarr,
+        load_geospatial_data_from_file,
         rasterize_features,
         read_netcdf,
-        read_shapefile,
         read_zarr,
         write_compressed_netcdf,
         write_zarr,
@@ -254,40 +254,52 @@ def test_read_netcdf_missing_path_raises(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# GIS: read_shapefile
+# GIS: load_geospatial_data_from_file
 # ---------------------------------------------------------------------------
 
-def test_read_shapefile(watershed_shapefile):
-    """read_shapefile loads a shapefile into a GeoDataFrame."""
+def test_load_geospatial_data_from_file(watershed_shapefile):
+    """load_geospatial_data_from_file loads a shapefile into a GeoDataFrame."""
     pytest.importorskip("geopandas")
     import geopandas as gpd
 
-    from ss_fha.io.gis_io import read_shapefile
+    from ss_fha.io.gis_io import load_geospatial_data_from_file
 
     shp_path, _ = watershed_shapefile
-    gdf = read_shapefile(shp_path, clip_to=None)
+    gdf = load_geospatial_data_from_file(shp_path, clip_to=None)
 
     assert isinstance(gdf, gpd.GeoDataFrame)
     assert len(gdf) == 1
 
 
-def test_read_shapefile_missing_path_raises(tmp_path):
-    """read_shapefile raises DataError when path does not exist."""
+def test_load_geospatial_data_from_file_missing_path_raises(tmp_path):
+    """load_geospatial_data_from_file raises DataError when path does not exist."""
     from ss_fha.exceptions import DataError
-    from ss_fha.io.gis_io import read_shapefile
+    from ss_fha.io.gis_io import load_geospatial_data_from_file
 
     with pytest.raises(DataError):
-        read_shapefile(tmp_path / "nonexistent.shp", clip_to=None)
+        load_geospatial_data_from_file(tmp_path / "nonexistent.shp", clip_to=None)
 
 
-def test_read_shapefile_clip_to(tmp_path, reference_ds_with_crs):
-    """read_shapefile with clip_to clips the result to the bounding geometry."""
+def test_load_geospatial_data_from_file_unsupported_extension_raises(tmp_path):
+    """load_geospatial_data_from_file raises DataError for unsupported extension."""
+    from ss_fha.exceptions import DataError
+    from ss_fha.io.gis_io import load_geospatial_data_from_file
+
+    bad_path = tmp_path / "data.kml"
+    bad_path.touch()  # file must exist to pass the extension check first
+
+    with pytest.raises(DataError, match="Unsupported file extension"):
+        load_geospatial_data_from_file(bad_path, clip_to=None)
+
+
+def test_load_geospatial_data_from_file_clip_to(tmp_path, reference_ds_with_crs):
+    """load_geospatial_data_from_file with clip_to clips to the bounding geometry."""
     pytest.importorskip("geopandas")
     pytest.importorskip("shapely")
     import geopandas as gpd
     from shapely.geometry import box
 
-    from ss_fha.io.gis_io import read_shapefile
+    from ss_fha.io.gis_io import load_geospatial_data_from_file
 
     ds = reference_ds_with_crs
     xmin, xmax = float(ds.x.min()), float(ds.x.max())
@@ -300,32 +312,30 @@ def test_read_shapefile_clip_to(tmp_path, reference_ds_with_crs):
         {"geometry": [poly_in, poly_out]}, crs="EPSG:32147"
     )
 
-    # Write to shapefile
     shp_path = tmp_path / "two_polys.shp"
     gdf_all.to_file(shp_path)
 
-    # clip_to is the bounding box of the reference dataset
     clip_poly = box(xmin - 10, ymin - 10, xmax + 10, ymax + 10)
     clip_gdf = gpd.GeoDataFrame({"geometry": [clip_poly]}, crs="EPSG:32147")
 
-    result = read_shapefile(shp_path, clip_to=clip_gdf)
+    result = load_geospatial_data_from_file(shp_path, clip_to=clip_gdf)
     assert len(result) == 1  # only the inside polygon survives
 
 
 # ---------------------------------------------------------------------------
-# GIS: create_mask_from_shapefile
+# GIS: create_mask_from_polygon — file path input
 # ---------------------------------------------------------------------------
 
-def test_create_mask_from_shapefile(watershed_shapefile, reference_ds_with_crs):
-    """create_mask_from_shapefile produces a boolean DataArray."""
+def test_create_mask_from_polygon_filepath(watershed_shapefile, reference_ds_with_crs):
+    """create_mask_from_polygon with a file path produces a boolean DataArray."""
     pytest.importorskip("rioxarray")
     import xarray as xr
 
-    from ss_fha.io.gis_io import create_mask_from_shapefile
+    from ss_fha.io.gis_io import create_mask_from_polygon
 
     shp_path, _ = watershed_shapefile
-    mask = create_mask_from_shapefile(
-        shapefile_path=shp_path,
+    mask = create_mask_from_polygon(
+        polygon=shp_path,
         reference_ds=reference_ds_with_crs,
         crs_epsg=32147,
     )
@@ -335,50 +345,139 @@ def test_create_mask_from_shapefile(watershed_shapefile, reference_ds_with_crs):
     assert set(mask.dims) == {"x", "y"}
 
 
-def test_create_mask_full_coverage(watershed_shapefile, reference_ds_with_crs):
-    """Polygon covering entire grid produces an all-True mask."""
+def test_create_mask_from_polygon_full_coverage_filepath(
+    watershed_shapefile, reference_ds_with_crs
+):
+    """File-path polygon covering entire grid produces an all-True mask."""
     pytest.importorskip("rioxarray")
 
-    from ss_fha.io.gis_io import create_mask_from_shapefile
+    from ss_fha.io.gis_io import create_mask_from_polygon
 
     shp_path, _ = watershed_shapefile
-    mask = create_mask_from_shapefile(
-        shapefile_path=shp_path,
+    mask = create_mask_from_polygon(
+        polygon=shp_path,
         reference_ds=reference_ds_with_crs,
         crs_epsg=32147,
     )
 
-    assert mask.values.all(), "Expected all cells to be True (polygon covers full grid)"
+    assert mask.values.all(), "Expected all cells True (polygon covers full grid)"
 
 
-def test_create_mask_missing_shapefile_raises(tmp_path, reference_ds_with_crs):
-    """create_mask_from_shapefile raises DataError when shapefile missing."""
+def test_create_mask_from_polygon_geodataframe(
+    watershed_shapefile, reference_ds_with_crs
+):
+    """create_mask_from_polygon with a GeoDataFrame produces a boolean DataArray."""
+    pytest.importorskip("rioxarray")
+    import xarray as xr
+
+    from ss_fha.io.gis_io import create_mask_from_polygon, load_geospatial_data_from_file
+
+    shp_path, _ = watershed_shapefile
+    gdf = load_geospatial_data_from_file(shp_path, clip_to=None)
+
+    mask = create_mask_from_polygon(
+        polygon=gdf,
+        reference_ds=reference_ds_with_crs,
+        crs_epsg=32147,
+    )
+
+    assert isinstance(mask, xr.DataArray)
+    assert mask.dtype == bool
+    assert mask.values.all()
+
+
+def test_create_mask_from_polygon_geoseries(
+    watershed_shapefile, reference_ds_with_crs
+):
+    """create_mask_from_polygon with a GeoSeries produces a boolean DataArray."""
+    pytest.importorskip("rioxarray")
+    import xarray as xr
+
+    from ss_fha.io.gis_io import create_mask_from_polygon, load_geospatial_data_from_file
+
+    shp_path, _ = watershed_shapefile
+    gdf = load_geospatial_data_from_file(shp_path, clip_to=None)
+
+    mask = create_mask_from_polygon(
+        polygon=gdf.geometry,
+        reference_ds=reference_ds_with_crs,
+        crs_epsg=32147,
+    )
+
+    assert isinstance(mask, xr.DataArray)
+    assert mask.dtype == bool
+    assert mask.values.all()
+
+
+def test_create_mask_from_polygon_shapely_geometry(
+    watershed_shapefile, reference_ds_with_crs
+):
+    """create_mask_from_polygon with a bare Shapely geometry produces a boolean DataArray."""
+    pytest.importorskip("rioxarray")
+    import xarray as xr
+
+    from ss_fha.io.gis_io import create_mask_from_polygon, load_geospatial_data_from_file
+
+    shp_path, _ = watershed_shapefile
+    gdf = load_geospatial_data_from_file(shp_path, clip_to=None)
+    # Bare geometry has no CRS — caller must ensure it matches crs_epsg
+    geom = gdf.geometry.iloc[0]
+
+    mask = create_mask_from_polygon(
+        polygon=geom,
+        reference_ds=reference_ds_with_crs,
+        crs_epsg=32147,
+    )
+
+    assert isinstance(mask, xr.DataArray)
+    assert mask.dtype == bool
+    assert mask.values.all()
+
+
+def test_create_mask_from_polygon_missing_file_raises(
+    tmp_path, reference_ds_with_crs
+):
+    """create_mask_from_polygon raises DataError when file path does not exist."""
     from ss_fha.exceptions import DataError
-    from ss_fha.io.gis_io import create_mask_from_shapefile
+    from ss_fha.io.gis_io import create_mask_from_polygon
 
     with pytest.raises(DataError):
-        create_mask_from_shapefile(
-            shapefile_path=tmp_path / "ghost.shp",
+        create_mask_from_polygon(
+            polygon=tmp_path / "ghost.shp",
             reference_ds=reference_ds_with_crs,
             crs_epsg=32147,
         )
 
 
-def test_create_mask_missing_spatial_coord_raises(
+def test_create_mask_from_polygon_unsupported_type_raises(
+    reference_ds_with_crs,
+):
+    """create_mask_from_polygon raises DataError for unsupported input type."""
+    from ss_fha.exceptions import DataError
+    from ss_fha.io.gis_io import create_mask_from_polygon
+
+    with pytest.raises(DataError, match="Unsupported polygon input type"):
+        create_mask_from_polygon(
+            polygon=42,  # type: ignore[arg-type]
+            reference_ds=reference_ds_with_crs,
+            crs_epsg=32147,
+        )
+
+
+def test_create_mask_from_polygon_missing_spatial_coord_raises(
     watershed_shapefile, simple_dataset
 ):
-    """create_mask_from_shapefile raises DataError if reference_ds lacks x/y."""
+    """create_mask_from_polygon raises DataError if reference_ds lacks x/y."""
     pytest.importorskip("rioxarray")
     from ss_fha.exceptions import DataError
-    from ss_fha.io.gis_io import create_mask_from_shapefile
+    from ss_fha.io.gis_io import create_mask_from_polygon
 
     shp_path, _ = watershed_shapefile
-    # simple_dataset has x/y but no CRS / rio transform — drop x to test guard
     ds_no_x = simple_dataset.drop_vars("x")
 
     with pytest.raises(DataError):
-        create_mask_from_shapefile(
-            shapefile_path=shp_path,
+        create_mask_from_polygon(
+            polygon=shp_path,
             reference_ds=ds_no_x,
             crs_epsg=32147,
         )
@@ -395,10 +494,10 @@ def test_rasterize_features_sequential_ids(
     pytest.importorskip("rioxarray")
     import xarray as xr
 
-    from ss_fha.io.gis_io import rasterize_features, read_shapefile
+    from ss_fha.io.gis_io import load_geospatial_data_from_file, rasterize_features
 
     shp_path, _ = watershed_shapefile
-    gdf = read_shapefile(shp_path, clip_to=None)
+    gdf = load_geospatial_data_from_file(shp_path, clip_to=None)
 
     result = rasterize_features(gdf, reference_ds_with_crs, field=None)
 
@@ -414,10 +513,10 @@ def test_rasterize_features_bad_field_raises(
     """rasterize_features raises DataError when field not in GeoDataFrame."""
     pytest.importorskip("rioxarray")
     from ss_fha.exceptions import DataError
-    from ss_fha.io.gis_io import rasterize_features, read_shapefile
+    from ss_fha.io.gis_io import load_geospatial_data_from_file, rasterize_features
 
     shp_path, _ = watershed_shapefile
-    gdf = read_shapefile(shp_path, clip_to=None)
+    gdf = load_geospatial_data_from_file(shp_path, clip_to=None)
 
     with pytest.raises(DataError):
         rasterize_features(gdf, reference_ds_with_crs, field="nonexistent_col")

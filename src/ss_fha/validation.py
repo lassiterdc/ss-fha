@@ -211,8 +211,27 @@ def validate_input_files(
                 ),
             )
 
+    # Supported geospatial file extensions (mirrors gis_io._SUPPORTED_GEO_EXTENSIONS)
+    _supported_geo_ext = {".shp", ".geojson", ".json", ".gpkg"}
+
+    def _check_geo_ext(path: Path, field_name: str) -> None:
+        if path.suffix.lower() not in _supported_geo_ext:
+            result.add_issue(
+                field_name=field_name,
+                message=(
+                    f"Unsupported geospatial file extension '{path.suffix}'. "
+                    f"Supported: {sorted(_supported_geo_ext)}"
+                ),
+                current_value=str(path),
+                fix_hint=(
+                    "Use one of the supported formats: "
+                    ".shp, .geojson, .json, .gpkg"
+                ),
+            )
+
     # --- System config paths ---
     _check(system_config.geospatial.watershed, "geospatial.watershed", "Watershed shapefile")
+    _check_geo_ext(system_config.geospatial.watershed, "geospatial.watershed")
 
     optional_geo = {
         "geospatial.roads": system_config.geospatial.roads,
@@ -224,6 +243,7 @@ def validate_input_files(
     for fname, fpath in optional_geo.items():
         if fpath is not None:
             _check(fpath, fname, fname.split(".")[-1].replace("_", " ").title())
+            _check_geo_ext(fpath, fname)
 
     # --- Analysis config paths (common to both SsfhaConfig and BdsConfig) ---
     if config.study_area_config is not None:
