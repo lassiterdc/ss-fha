@@ -15,7 +15,7 @@ The Opus subagent should:
     - Review related scripts that will either be modified and any scripts that depend/are dependent on the scripts that will be modified
     - If the implementation relies on existing test functions, review them too
 4. Review .prompts/philosphy.md
-    - if there are discrepencies between the plan and philosphy.md, explain them along with direct quotes from .prompts/philosphy.md
+    - if there are discrepencies between the plan and philosphy.md, explain them along with direct quotes from .prompts/philosphy.md, and provide recommendations on how to handle each discrepency
 5. If the plan is associated with a master plan, review the master planning document. Note the risk that the master planning document has gone stale. If there are discrepencies, report them to the developer along with direct quotes from this plan and the master plan, and judge which document is more likely to be stale.
 6. Return a 'preflight' report with findings from 1-5. The report should include: 0) Model and/or subagents used; 1) decisions needing input with all relevant context, options, and a recommendation; 2) uncertainties requiring clarification posed as questions with all relevant context; 3) other changes planned after the review that are not already reflected in the planning document. The rest of the report covers findings from 1-5.
 
@@ -27,7 +27,9 @@ Expected call pattern: '.prompts/proceed_with_implementation.md'
 
 Handle this phase yourself (Sonnet is appropriate here).
 
-1. If you are unclear about a decision or uncertainty clarfiication, raise questions now. Otherwise proceed.
+This document does not represent permission to succeed. It is a final check. Do not proceed until you have have gone through all of the steps below.
+
+1. If you are unclear about a decision or uncertainty clarfiication, raise questions now. Otherwise proceed to the next step.
 2. If decisions and clarifications have made planning documents stale, update them. 
 3. Report to the developer:
     - Summarize updates to planning documents. List and explain each change with relevant snippets from the revised docs.
