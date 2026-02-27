@@ -39,7 +39,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from ss_fha.core.flood_probability import calculate_positions, calculate_return_period
+from ss_fha.core.empirical_frequency_analysis import calculate_positions, calculate_return_period
 from ss_fha.exceptions import SSFHAError
 
 

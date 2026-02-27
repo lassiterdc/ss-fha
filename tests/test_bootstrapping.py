@@ -28,7 +28,7 @@ from ss_fha.core.bootstrapping import (
     draw_bootstrap_years,
     sort_last_dim,
 )
-from ss_fha.core.flood_probability import calculate_positions, calculate_return_period
+from ss_fha.core.empirical_frequency_analysis import calculate_positions, calculate_return_period
 from ss_fha.exceptions import SSFHAError
 
 

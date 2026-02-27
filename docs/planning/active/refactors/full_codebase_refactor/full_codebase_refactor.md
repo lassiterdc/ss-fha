@@ -438,7 +438,7 @@ ss-fha-norfolk-case-study/
 
 **Goal**: Establish the project skeleton so that every subsequent phase has a stable config system, path management, I/O layer, and test infrastructure to build on.
 
-#### Phase 1A: Exceptions and Constants
+#### Phase 1A: Exceptions and Constants — **COMPLETE** (2026-02-25)
 
 **Files to create:**
 - `src/ss_fha/exceptions.py` -- Custom exception hierarchy following TRITON-SWMM_toolkit pattern:
@@ -460,7 +460,7 @@ ss-fha-norfolk-case-study/
 **Tests:**
 - `test_config.py::test_defaults_are_accessible` -- import and verify defaults exist with expected types
 
-#### Phase 1B: Pydantic Configuration Model
+#### Phase 1B: Pydantic Configuration Model — **COMPLETE** (2026-02-25)
 
 **Files to create:**
 - `src/ss_fha/config/model.py` -- Main Pydantic config model
@@ -588,7 +588,7 @@ class SlurmConfig(BaseModel):
 
 **Note on end-to-end tests**: Phase 1F (test infrastructure) builds `build_minimal_test_case()` which is the synthetic fixture for all integration tests. Phase 6 (case study validation) runs the full Norfolk pipeline and compares against old-codebase reference outputs. Passing `test_end_to_end.py` with synthetic data is the gate before HPC testing; passing `test_UVA_end_to_end.py` with real data is the gate before publication.
 
-#### Phase 1C: Path Management
+#### Phase 1C: Path Management — **COMPLETE** (2026-02-25)
 
 **Files to create:**
 - `src/ss_fha/paths.py` -- Path dataclasses:
@@ -632,11 +632,9 @@ class ProjectPaths:
 - `test_paths.py::test_paths_from_config` -- Paths resolve correctly from config
 - `test_paths.py::test_ensure_dirs_creates_directories` -- Directories created in temp dir
 
-#### Phase 1D: I/O Layer
+#### Phase 1D: I/O Layer — **COMPLETE** (2026-02-25)
 
 Before writing any I/O function, check `/home/dcl3nd/dev/TRITON-SWMM_toolkit/src/TRITON_SWMM_toolkit/` for reusable utilities to import rather than duplicate. Any function identified as project-agnostic (useful beyond ss_fha and TRITON-SWMM_toolkit) should be noted in `docs/planning/utility_package_candidates.md` for potential extraction into a shared pip-installable package.
-
-**Status: COMPLETE (2026-02-25)**
 
 **Files created:**
 - `src/ss_fha/io/__init__.py`
@@ -658,7 +656,7 @@ Note: TRITON-SWMM_toolkit analogues exist but were not imported — they violate
 **Tests (21 passing):**
 - `test_io.py` — zarr roundtrip, netcdf roundtrip, zarr encoding, overwrite protection, delete, shapefile read, clip_to, create_mask, rasterize_features, all DataError cases
 
-#### Phase 1E: Validation Layer
+#### Phase 1E: Validation Layer — **COMPLETE** (2026-02-25)
 
 **Files to create:**
 - `src/ss_fha/validation.py` -- Following TRITON-SWMM_toolkit pattern:
@@ -674,7 +672,7 @@ Note: TRITON-SWMM_toolkit analogues exist but were not imported — they violate
 - `test_config.py::test_validation_accumulates_errors` -- Multiple issues reported together
 - `test_config.py::test_validation_per_workflow` -- Workflow 3 validation catches missing observed data
 
-#### Phase 1F: Test Infrastructure
+#### Phase 1F: Test Infrastructure — **COMPLETE** (2026-02-25)
 
 **Files to create:**
 - `tests/conftest.py` -- Shared fixtures:
@@ -701,7 +699,7 @@ Note: TRITON-SWMM_toolkit analogues exist but were not imported — they violate
 **Tests:**
 - `test_config.py::test_synthetic_test_case_builds` -- Builder produces valid config + data
 
-#### Phase 1G: Case Study Config Infrastructure (local only)
+#### Phase 1G: Case Study Config Infrastructure (local only) — **COMPLETE** (2026-02-25)
 
 HydroShare upload and download logic are deferred to Phase 6A, just before HPC testing. This phase only creates the config registry and template so local development can proceed using the staging directory directly.
 
@@ -752,7 +750,7 @@ Plotting position interface: `alpha`/`beta` float parameters passed directly to 
 
 **Tests**: `tests/test_flood_probability.py` — 22 tests; validates against scipy reference, hand-derived examples, and algebraic properties.
 
-#### Phase 2B: `core/bootstrapping.py`
+#### Phase 2B: `core/bootstrapping.py` — **COMPLETE** (2026-02-26)
 **Scope: single-sample computation only.** Combining N samples, computing CIs, and post-combine QA are Phase 3B runner responsibilities — see Phase 3B below.
 
 New functions (not direct ports — old code was I/O-coupled and had no named equivalents for combine/quantile):
@@ -767,7 +765,7 @@ Deferred to Phase 3B runner: combining per-sample zarrs, computing quantile CIs,
 
 **Tests**: Reproducibility, year-pool correctness (event-free years), NaN guard, return period accuracy.
 
-#### Phase 2C: `core/event_statistics.py`
+#### Phase 2C: `core/event_statistics.py` — **COMPLETE** (2026-02-26)
 Extract from `__utils.py`:
 - `compute_univariate_event_return_periods()`
 - `compute_all_multivariate_return_period_combinations()`
@@ -776,7 +774,7 @@ Extract from `__utils.py`:
 
 **Tests**: Known event sets with pre-computed return periods.
 
-#### Phase 2D: `core/geospatial.py` + `io/gis_io.py` updates
+#### Phase 2D: `core/geospatial.py` + `io/gis_io.py` updates — **COMPLETE** (2026-02-26)
 
 **`io/gis_io.py` changes (prerequisite to the core module):**
 - Rename `read_shapefile()` → superseded by `load_geospatial_data_from_file(path, clip_to)`, the canonical loader for any OGR-readable vector format (`.shp`, `.geojson`, `.json`, `.gpkg`). Validates file extension.
@@ -808,7 +806,7 @@ Extract from `__utils.py` (spatial primitives only — orchestration functions d
 
 **Tests**: Synthetic geometries with known overlap areas; verify `create_mask_from_polygon` with file path, GeoDataFrame, and geometry inputs.
 
-#### Phase 2E: `core/empirical_frequency_analysis.py` — extract domain-agnostic primitives
+#### Phase 2E: `core/empirical_frequency_analysis.py` — **COMPLETE** (2026-02-26)
 
 **Goal**: Extract three domain-agnostic empirical frequency primitives into a new `core/empirical_frequency_analysis.py`. These functions contain no flood hydrology, no SWMM, and no project-specific context.
 
