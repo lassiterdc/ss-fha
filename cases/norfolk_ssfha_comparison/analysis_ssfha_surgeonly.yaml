@@ -3,6 +3,9 @@
 
 fha_id: ssfha_surgeonly
 fha_approach: ssfha
+is_comparative_analysis: true   # Comparative analysis: no event_statistics, no alt_fha_analyses.
+                                 # Event return period calculations are owned by the primary
+                                 # analysis (analysis_ssfha_combined.yaml).
 project_name: norfolk_ssfha_comparison
 study_area_config: cases/norfolk_ssfha_comparison/system.yaml
 

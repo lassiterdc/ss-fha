@@ -18,6 +18,7 @@ _MINIMAL_SSFHA_DICT = {
     "fha_id": "test_ssfha",
     "fha_approach": "ssfha",
     "project_name": "test_project",
+    "is_comparative_analysis": True,  # avoids requiring event_statistic_variables
     "n_years_synthesized": 1000,
     "return_periods": [1, 2, 10, 100],
     "toggle_uncertainty": False,

@@ -7,6 +7,7 @@
 fha_id: bds_surgeonly_6hr
 fha_approach: bds
 project_name: norfolk_ssfha_comparison
+is_comparative_analysis: true  # Referenced from analysis_ssfha_combined.yaml alt_fha_analyses.
 study_area_config: cases/norfolk_ssfha_comparison/system.yaml
 
 output_dir: outputs/norfolk_ssfha_comparison/

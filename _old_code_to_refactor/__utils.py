@@ -1,7 +1,7 @@
 # %%
 # =============================================================================
 # REFACTORING STATUS (ss-fha full_codebase_refactor)
-# Last updated: 2026-02-26 (updated for 02B)
+# Last updated: 2026-02-26 (updated for 02C)
 #
 # I/O FUNCTIONS — migrated to src/ss_fha/io/ (Phase 1D, complete)
 #   write_zarr()                  → ss_fha.io.zarr_io.write_zarr
@@ -12,14 +12,13 @@
 #   create_flood_metric_mask()    → ss_fha.io.gis_io.rasterize_features
 #   (read_zarr, read_netcdf, read_shapefile are new — no old equivalent)
 #
-# CORE COMPUTATION FUNCTIONS — partially migrated in Phase 2A
+# CORE COMPUTATION FUNCTIONS — migrated in Phase 2A
 #   calculate_positions()             → ss_fha.core.flood_probability.calculate_positions
 #   calculate_return_period()         → ss_fha.core.flood_probability.calculate_return_period
 #   compute_emp_cdf_and_return_pds()  → ss_fha.core.flood_probability.compute_emp_cdf_and_return_pds
 #   sort_dimensions()                 → ss_fha.core.utils.sort_dimensions
 #
-#
-# BOOTSTRAP FUNCTIONS — partially migrated in Phase 2B
+# BOOTSTRAP FUNCTIONS (flood depth) — migrated in Phase 2B
 #   sort_last_dim()                   → ss_fha.core.bootstrapping.sort_last_dim
 #   (bootstrapping_return_period_estimates — pure computation kernel extracted into:)
 #     draw_bootstrap_years()          → ss_fha.core.bootstrapping.draw_bootstrap_years  [new]
@@ -27,14 +26,37 @@
 #     compute_return_period_indexed_depths() → ss_fha.core.bootstrapping.compute_return_period_indexed_depths  [new]
 #
 #   NOT MIGRATED (deferred to Phase 3B runner):
-#   prepare_for_bootstrapping()           — orchestration/file-management; runner layer
-#   bootstrapping_return_period_estimates() — fully replaced by the three new functions above
+#   prepare_for_bootstrapping()               — orchestration/file-management; runner layer
+#   bootstrapping_return_period_estimates()   — fully replaced by three new functions above
 #   write_bootstrapped_samples_to_single_zarr() — combine step; runner layer
-#   check_for_na_in_combined_bs_zarr()    — post-combine QA; runner layer
+#   check_for_na_in_combined_bs_zarr()        — post-combine QA; runner layer
 #
-#   NOT YET MIGRATED (remaining Phase 2+):
-#   compute_return_periods_for_series() — deferred to later phase (univariate event-level analysis)
-#   All other functions in this file are not yet migrated.
+# EVENT STATISTICS FUNCTIONS — migrated in Phase 2C
+#   compute_return_periods() + compute_return_periods_for_series()
+#                                     → ss_fha.core.event_statistics._compute_return_periods_for_series  [private]
+#   compute_AND_multivar_return_period_for_sample()
+#                                     → ss_fha.core.event_statistics._compute_AND_multivar_return_period_for_sample  [private, reference]
+#   compute_OR_multivar_return_period_for_sample()
+#                                     → ss_fha.core.event_statistics._compute_OR_multivar_return_period_for_sample  [private, reference]
+#   empirical_multivariate_return_periods()
+#                                     → ss_fha.core.event_statistics._empirical_multivariate_return_periods_reference  [private, reference]
+#                                       ss_fha.core.event_statistics.empirical_multivariate_return_periods  [vectorized, public]
+#   compute_univariate_event_return_periods()
+#                                     → ss_fha.core.event_statistics.compute_univariate_event_return_periods
+#   compute_all_multivariate_return_period_combinations()
+#                                     → ss_fha.core.event_statistics.compute_all_multivariate_return_period_combinations
+#   bs_samp_of_univar_event_return_period()
+#                                     → ss_fha.core.event_statistics.bs_samp_of_univar_event_return_period
+#   bs_samp_of_multivar_event_return_period()
+#                                     → ss_fha.core.event_statistics.bs_samp_of_multivar_event_return_period
+#   analyze_bootstrapped_samples()    → ss_fha.core.event_statistics.analyze_bootstrapped_samples
+#   return_df_of_evens_within_ci_including_event_stats()
+#                                     → ss_fha.core.event_statistics.return_df_of_events_within_ci  [typo fixed]
+#
+#   NOT MIGRATED (runner layer — deferred to Phase 3):
+#   prepare_for_bootstrapping()               — orchestration/resume logic; runner layer
+#   write_netcdf_of_ensemble_based_return_period_floods() — I/O; runner layer
+#   write_netcdf_of_mcds_return_period_floods() — I/O; runner layer
 # =============================================================================
 
 import xarray as xr
@@ -2542,7 +2564,7 @@ def compute_AND_multivar_return_period_for_sample(
     n_1_lessthan_or_equal_to = df_exceedance.any(axis=1).sum()
     emp_cdf_val_AND = (n_1_lessthan_or_equal_to - alpha) / (
         n_samples + 1 - alpha - beta
-    )  # small non exceedance probability = larger exceedance probability
+    )  # small non exceedance probability = larger exceedance probability = smaller return period
     return emp_cdf_val_AND
 
 
@@ -2553,7 +2575,7 @@ def compute_OR_multivar_return_period_for_sample(
     n_all_lessthan_or_equal_to = df_exceedance.all(axis=1).sum()
     emp_cdf_val_OR = (n_all_lessthan_or_equal_to - alpha) / (
         n_samples + 1 - alpha - beta
-    )
+    ) # larger non exceedance probability = smaller exceedance probability = larger return period
     return emp_cdf_val_OR
 
 

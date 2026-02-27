@@ -31,6 +31,20 @@ triton_outputs:
 # --- Monte Carlo Design Storm toggle ---
 toggle_mcds: true
 
+# --- Weather event indices ---
+weather_event_indices: [event_type, year, event_id]
+
+# --- Event statistics ---
+event_statistic_variables:
+  precip_intensity:
+    variable_name: mm_per_hr
+    units: mm_per_hr
+    max_intensity_windows_min: [5, 15, 30, 60, 120, 240, 360, 720, 1440, 2880]
+  boundary_stage:
+    variable_name: waterlevel_m
+    units: m
+    max_intensity_windows_min: null
+
 # --- Event data ---
 event_data:
   sim_event_summaries: {{data_dir}}/events/ss_simulation_summaries.csv

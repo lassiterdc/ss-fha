@@ -45,6 +45,35 @@ triton_outputs:
 # improvement — see full_codebase_refactor.md.
 toggle_mcds: true
 
+# --- Weather event indices ---
+# List of dimension names used to uniquely identify weather events in the time
+# series NetCDF and iloc mapping CSV. Must include a year-like index (year/yr/y).
+# These replace any hardcoded index names (event_type, year, event_id) throughout
+# the codebase — subsetting always uses these user-defined names.
+weather_event_indices: [event_type, year, event_id]
+
+# --- Event statistics ---
+# Defines which weather driver variables are used when computing univariate and
+# multivariate event return periods. Required for the primary (non-comparative)
+# ssfha analysis only. Event return periods are computed once and shared with all
+# comparative analyses.
+event_statistic_variables:
+  precip_intensity:
+    variable_name: mm_per_hr      # Column name in time series NetCDF.
+    units: mm_per_hr              # Currently supported: mm_per_hr.
+    max_intensity_windows_min: [5, 15, 30, 60, 120, 240, 360, 720, 1440, 2880]
+    # Rolling-window durations (minutes) for max accumulated intensity.
+    # Source: RAIN_WINDOWS_MIN in _old_code_to_refactor/__inputs.py.
+    # Covers: 5 min (convective peak), 15 min, 30 min, 1 hr, 2 hr, 4 hr,
+    #         6 hr, 12 hr, 24 hr (total storm), 48 hr (multi-day).
+  boundary_stage:
+    variable_name: waterlevel_m   # Column name in time series NetCDF.
+    units: m                      # Currently supported: m.
+    max_intensity_windows_min: null
+    # null → simple maximum over all timesteps (peak storm tide / surge level).
+    # A list of window durations can be provided if time-windowed surge statistics
+    # are desired (e.g. max 6-hr surge: [360]).
+
 # --- Event data ---
 # Per-event meteorological summaries and time series for all SS simulations.
 # empirical_rainfall_return_periods and empirical_water_level_return_periods are NOT

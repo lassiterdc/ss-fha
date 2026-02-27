@@ -38,7 +38,7 @@ test = [
     "pytest",
 ]
 typecheck = [
-    "ty",
+    "pyright",
 ]
 docs = [
     "zensical",
@@ -54,10 +54,8 @@ homepage = "https://github.com/lassiterdc/ss_fha"
 [project.scripts]
 ss_fha = "ss_fha.cli:app"
 
-[tool.ty]
-# All rules are enabled as "error" by default; no need to specify unless overriding.
-# Example override: relax a rule for the entire project (uncomment if needed).
-# rules.TY015 = "warn"  # For invalid-argument-type, warn instead of error.
+# Type checking is configured in pyrightconfig.json (read by both Pylance in VS Code
+# and the pyright CLI). See pyrightconfig.json for suppressed diagnostic categories.
 
 [tool.ruff]
 line-length = 120

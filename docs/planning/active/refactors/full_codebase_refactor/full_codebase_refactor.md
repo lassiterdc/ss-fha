@@ -12,6 +12,9 @@
 6. Follow patterns from TRITON-SWMM_toolkit (config, validation, runner scripts, workflow generation, examples/test infrastructure)
     - **NOTE**: This library IS in the current environment at `/home/dcl3nd/dev/TRITON-SWMM_toolkit`. If any functions or classes can be used as-is, they should be imported rather than duplicated here.
 7. Phased implementation with each phase independently testable
+8. When functions are ported, permanent test functions should be created to ensure that the new refactored functions produce the same results as the old functions. 
+    - Ideally, old functions will be imported directly from an old script for comparison. If that is not possible, old functions can be ported to the new code base. Those functions should not be public (preceded with '_') and the docstring should include "PORTED FUNCTION FOR TESTING THE REFACTORING" so those functions can be easily found later. These represent an exception to the no cruft philosphy, but the intention is to eventually delete them once the refactor has been satisfactorly completed.
+    - If discrepencies are found, consider the possibility that the old code has an error. This is unlikely, but possible. If you suspect an error in the old code, report to the developer what you suspect the error is and why your error is correct. Include any relevant code chunk(s) and mathematical proofs.
 
 ### Assumptions
 
@@ -206,6 +209,7 @@ src/ss_fha/
 
     validation.py                  # Business logic validation (beyond Pydantic type checks)
     paths.py                       # Path dataclasses: ProjectPaths (output dirs only; input paths live on config model)
+    constants.py                   # All project-wide UPPER_SNAKE_CASE constants (not case-study-specific values)
 
     io/
         __init__.py
@@ -317,7 +321,7 @@ Additionally, maintain a tracking table in this planning document (updated after
 | Old File | Status | Migrated To | Phase |
 |----------|--------|------------|-------|
 | `__inputs.py` | PARTIAL (01A + 01B done — constants and Pydantic config model migrated; paths pending 01C) | `config/model.py`, `config/defaults.py`, `paths.py` | 1 |
-| `__utils.py` | IN PROGRESS — I/O (1D), flood probability (2A), bootstrap computation kernel (2B) migrated; combine/QA deferred to 3B runner; remaining computation pending 2C–2D | `core/*`, `io/*` | 1D, 2, 3B |
+| `__utils.py` | IN PROGRESS — I/O (1D), flood probability (2A), bootstrap computation kernel (2B), event statistics (2C) migrated; combine/QA deferred to 3B runner; remaining computation pending 2D | `core/*`, `io/*` | 1D, 2, 3B |
 | `__plotting.py` | NOT STARTED | `visualization/*` | 5 |
 | `b1_analyze_triton_outputs_fld_prob_calcs.py` | NOT STARTED | `analysis/flood_hazard.py` | 3A |
 | `b2b_sim_vs_obs_flod_ppct.py` | NOT STARTED | `analysis/ppcct.py` | 3D |
@@ -922,12 +926,41 @@ Replaces: `f1_*`, `f2_*` scripts
 | Risk | Impact | Mitigation |
 |------|--------|------------|
 | Bootstrap zarr files are multi-GB; 500 samples creates massive I/O | Pipeline fails or is extremely slow on local machines | Implement chunked I/O, configurable sample count, and test with small counts (5-10) |
-| Multivariate return period combinations explode combinatorially | Memory/time issues | Validate combination count before execution; warn user |
+| Multivariate return period combinations explode combinatorially with many event statistics | Memory/time issues | No hard cap enforced; runner scripts emit per-rule wall-clock timings to CSV (see Cross-Cutting: Timing Infrastructure below) so bottlenecks are observable before decisions are made |
 | TRITON output zarr structure varies between TRITON versions | Data loading fails | Validate zarr schema against expected variables/dimensions in config validation |
 | Plotting positions (Weibull vs Stendinger) produce subtly different results | Silent mathematical errors | Test both methods against analytical distributions with known CDF |
 | HydroShare download may be slow or unavailable | Case study tests fail | Cache downloaded data; mock HydroShare in unit tests; only require download for integration tests |
 | SLURM environments vary significantly | Workflow fails on untested HPC | Platform configs with explicit validation; document tested platforms |
 | Snakemake 9.x API differs from examples in older TRITON-SWMM_toolkit | Workflow generation code incompatible | Target 9.15.0 specifically; use `--executor slurm` plugin API, not legacy `--cluster` |
+
+---
+
+## Cross-Cutting Concerns
+
+### Timing Infrastructure (applies to all runner scripts, Phase 3+)
+
+Every runner script must emit structured timing records to stdout in a consistent, parseable format. Snakemake collects stdout into per-rule log files; a post-processing utility reads those log files and compiles them into a summary CSV. Writing timing data directly to a shared CSV from concurrent runners would cause race conditions and is explicitly prohibited.
+
+**Runner invocation convention:**
+
+Every runner accepts a `--rule` CLI argument containing the Snakemake rule name (a string literal in the `shell:` directive — not inferrable from inside the runner). `fha_id` is read from the loaded analysis config (not passed as a redundant CLI arg). Runner name is derived from `Path(__file__).stem`.
+
+```
+# Snakefile shell directive:
+python event_statistics_runner.py --config {input.config} --rule compute_event_stats
+```
+
+**Required format (emitted to stdout by every runner):**
+
+```
+TIMING runner=<Path(__file__).stem> rule=<--rule arg> fha_id=<from config> elapsed_s=<float> start_utc=<ISO8601> end_utc=<ISO8601>
+```
+
+The `TIMING` prefix makes records grep-able across all log files. All fields are space-separated key=value pairs on a single line.
+
+**Post-processing:** A utility (to be implemented when runners are written) scans `{output_dir}/logs/` for all Snakemake log files, extracts `TIMING` lines, and writes `{output_dir}/timing/runner_timings.csv` with columns: `runner`, `rule`, `fha_id`, `elapsed_s`, `start_utc`, `end_utc`.
+
+**Rationale:** Multivariate bootstrapping and other combinatorial steps have unknown wall-clock costs on full-scale data. Timing records allow informed decisions about Snakemake parallelization (e.g., whether multivariate bootstrap samples should be distributed as individual sbatch jobs). No hard limits on combination counts are imposed; the timing data provides the empirical basis for future optimization decisions.
 
 ---
 

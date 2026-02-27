@@ -41,6 +41,22 @@ class ConfigurationError(SSFHAError):
         super().__init__(f"Configuration error in field '{field}'\n  {message}")
 
 
+class ComputationError(SSFHAError):
+    """Pure-computation failure with no associated file path.
+
+    Raised when a computation step fails due to bad input data shape,
+    unexpected NaN values, or failed column lookups — situations where
+    no file is being read or written. Use ``DataError`` instead when
+    the failure involves an I/O operation.
+
+    Attributes:
+        message: Human-readable description of the failure.
+    """
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(message)
+
+
 class DataError(SSFHAError):
     """Data loading, parsing, or I/O failure.
 

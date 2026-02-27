@@ -145,6 +145,7 @@ _MINIMAL_SSFHA_DICT = {
     "fha_id": "test_ssfha",
     "fha_approach": "ssfha",
     "project_name": "test_project",
+    "is_comparative_analysis": True,  # avoids requiring event_statistic_variables
     "n_years_synthesized": 1000,
     "return_periods": [1, 2, 10, 100],
     "toggle_uncertainty": False,
@@ -497,11 +498,34 @@ import pytest as _pytest
 
 @_pytest.mark.parametrize("yaml_path", NORFOLK_ANALYSIS_YAMLS, ids=lambda p: p.stem)
 def test_norfolk_case_yamls_load(yaml_path):
-    """Each Norfolk analysis YAML loads without error via load_config."""
+    """Each Norfolk analysis YAML loads without error via load_config.
+
+    Also verifies that key fields are parsed (not silently ignored), catching
+    YAML key vs Pydantic field name mismatches that Pydantic's strict=False
+    mode would otherwise swallow.
+    """
     from ss_fha.config import load_config
+    from ss_fha.config.model import SsfhaConfig, BdsConfig
+
     cfg = load_config(yaml_path)
     assert cfg.fha_id is not None
     assert cfg.fha_approach in ("ssfha", "bds")
+
+    if isinstance(cfg, SsfhaConfig) and not cfg.is_comparative_analysis:
+        # Primary SSFHA configs must have event_statistic_variables populated —
+        # a None here means the YAML key was silently ignored (key/field mismatch).
+        assert cfg.event_statistic_variables is not None, (
+            f"{yaml_path.name}: event_statistic_variables was not parsed — "
+            "likely a YAML key vs Pydantic field name mismatch."
+        )
+        assert cfg.n_years_synthesized > 0
+        assert len(cfg.return_periods) > 0
+
+    if isinstance(cfg, BdsConfig):
+        assert cfg.is_comparative_analysis is True, (
+            f"{yaml_path.name}: BdsConfig should have is_comparative_analysis=True "
+            "for all Norfolk comparative analyses."
+        )
 
 
 # ===========================================================================
@@ -540,6 +564,7 @@ def _make_ssfha_config(tmp_path, *, make_files: bool = True):
         "fha_id": "test_ssfha",
         "fha_approach": "ssfha",
         "project_name": "test_project",
+        "is_comparative_analysis": True,  # avoids requiring event_statistic_variables
         "output_dir": str(tmp_path / "output"),
         "n_years_synthesized": 1000,
         "return_periods": [1, 2, 10, 100],
@@ -669,6 +694,7 @@ def test_validation_missing_input_files(tmp_path):
         "fha_id": "test_ssfha",
         "fha_approach": "ssfha",
         "project_name": "test_project",
+        "is_comparative_analysis": True,
         "output_dir": str(tmp_path / "output"),
         "n_years_synthesized": 1000,
         "return_periods": [1, 2, 10, 100],
@@ -721,6 +747,7 @@ def test_validation_accumulates_errors(tmp_path):
         "fha_id": "test_ssfha",
         "fha_approach": "ssfha",
         "project_name": "test_project",
+        "is_comparative_analysis": True,
         "output_dir": str(tmp_path / "output"),
         "n_years_synthesized": 1000,
         "return_periods": [1, 2, 10, 100],
@@ -930,6 +957,9 @@ def test_template_fills_and_parses(tmp_path):
     assert cfg.toggle_ppcct is True
     assert cfg.toggle_mcds is True
     assert len(cfg.alt_fha_analyses) == 6
+    assert cfg.weather_event_indices == ["event_type", "year", "event_id"]
+    assert cfg.event_statistic_variables is not None
+    assert cfg.event_statistic_variables.precip_intensity is not None
 
 
 def test_template_raises_on_unfilled_placeholder():

@@ -6,6 +6,15 @@ Two top-level models:
       SsfhaConfig  (fha_approach="ssfha")
       BdsConfig    (fha_approach="bds")
 
+Analysis vs. comparative analysis
+----------------------------------
+An "analysis" is the primary config for a study area. It owns event return
+period calculations and may reference comparative analyses via alt_fha_analyses.
+
+A "comparative analysis" is a lighter config (is_comparative_analysis=True) that
+represents an alternative FHA approach. It must not contain event_statistics,
+alt_fha_analyses, or toggle_mcds=True.
+
 Existence checks for Path fields are deferred to validation.py (01E).
 This module validates structure, types, and toggle-dependency consistency only.
 """
@@ -17,6 +26,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+from ss_fha.constants import WEATHER_EVENT_INDEX_YEAR_ALIASES
 from ss_fha.exceptions import ConfigurationError
 
 
@@ -111,6 +121,54 @@ class FloodRiskConfig(BaseModel):
     pass
 
 
+# ---------------------------------------------------------------------------
+# Event statistics sub-models (02C)
+# ---------------------------------------------------------------------------
+
+class EventStatisticVariableConfig(BaseModel):
+    """Configuration for one weather driver variable used in event statistic calculations.
+
+    Attributes
+    ----------
+    variable_name:
+        Name of the variable in the weather time series NetCDF (e.g. ``"mm_per_hr"``).
+    units:
+        Units of the variable. Currently supported: ``"mm_per_hr"`` (precip intensity),
+        ``"m"`` (water level / stage).
+    max_intensity_windows_min:
+        List of rolling-window durations in minutes over which to compute the maximum
+        accumulated intensity (e.g. ``[5, 30, 60, 1440]`` for 5-min through 24-hour
+        windows). Pass ``null`` (``None``) to take the simple maximum over all timesteps
+        without any rolling window — appropriate for boundary stage variables where the
+        peak instantaneous value is the statistic of interest.
+    """
+
+    variable_name: str
+    units: str
+    max_intensity_windows_min: list[int] | None
+
+
+class EventStatisticsConfig(BaseModel):
+    """Configuration for event statistic computation.
+
+    Required on the primary (non-comparative) ssfha analysis. Defines which weather
+    driver variables are used when computing univariate and multivariate event return
+    periods. Event return periods are always computed once, at the primary analysis
+    level, and shared with any comparative analyses.
+
+    Attributes
+    ----------
+    precip_intensity:
+        Precipitation intensity variable. Required.
+    boundary_stage:
+        Boundary condition stage variable (e.g. storm tide / surge). Optional —
+        omit for rain-only analyses.
+    """
+
+    precip_intensity: EventStatisticVariableConfig
+    boundary_stage: EventStatisticVariableConfig | None = None
+
+
 class SlurmConfig(BaseModel):
     partition: str
     account: str
@@ -143,6 +201,7 @@ class SsfhaConfig(BaseModel):
     fha_approach: Literal["ssfha"]
     fha_id: str
     project_name: str
+    is_comparative_analysis: bool = False
     output_dir: Path | None = None
     study_area_config: Path | None = None
     n_years_synthesized: int
@@ -153,8 +212,10 @@ class SsfhaConfig(BaseModel):
     toggle_flood_risk: bool
     toggle_design_comparison: bool
     alt_fha_analyses: list[Path] = Field(default_factory=list)
+    weather_event_indices: list[str] | None = None
     triton_outputs: TritonOutputsConfig
     event_data: EventDataConfig
+    event_statistic_variables: EventStatisticsConfig | None = None
     uncertainty: UncertaintyConfig | None = None
     ppcct: PPCCTConfig | None = None
     flood_risk: FloodRiskConfig | None = None
@@ -164,6 +225,51 @@ class SsfhaConfig(BaseModel):
     def validate_toggle_dependencies(self) -> "SsfhaConfig":
         errors: list[str] = []
 
+        # --- Comparative analysis: forbidden fields ---
+        if self.is_comparative_analysis:
+            if self.event_statistic_variables is not None:
+                errors.append(
+                    "is_comparative_analysis=True but 'event_statistic_variables' is set. "
+                    "Event statistics belong to the primary analysis only."
+                )
+            if self.alt_fha_analyses:
+                errors.append(
+                    "is_comparative_analysis=True but 'alt_fha_analyses' is non-empty. "
+                    "Comparative analyses cannot themselves reference further comparative analyses."
+                )
+            if self.toggle_mcds:
+                errors.append(
+                    "is_comparative_analysis=True but toggle_mcds=True. "
+                    "MCDS is only valid on the primary analysis."
+                )
+
+        # --- Primary ssfha analysis: required fields ---
+        if not self.is_comparative_analysis:
+            if self.weather_event_indices is None:
+                errors.append(
+                    "is_comparative_analysis=False but 'weather_event_indices' is not set. "
+                    "Required for all primary ssfha analyses."
+                )
+            else:
+                # Validate that a year-like index is present
+                has_year = any(
+                    idx in WEATHER_EVENT_INDEX_YEAR_ALIASES
+                    for idx in self.weather_event_indices
+                )
+                if not has_year:
+                    errors.append(
+                        f"'weather_event_indices' must include a year index "
+                        f"(one of: {sorted(WEATHER_EVENT_INDEX_YEAR_ALIASES)}). "
+                        f"Got: {self.weather_event_indices}"
+                    )
+
+            if self.event_statistic_variables is None:
+                errors.append(
+                    "is_comparative_analysis=False but 'event_statistic_variables' is not set. "
+                    "Required for all primary ssfha analyses."
+                )
+
+        # --- Toggle dependencies ---
         if self.toggle_uncertainty and self.uncertainty is None:
             errors.append(
                 "toggle_uncertainty=True but 'uncertainty' config section is missing"
@@ -188,11 +294,6 @@ class SsfhaConfig(BaseModel):
                 "toggle_design_comparison=True but 'alt_fha_analyses' is empty"
             )
 
-        if self.toggle_mcds and self.fha_approach != "ssfha":
-            errors.append(
-                "toggle_mcds=True is only valid when fha_approach='ssfha'"
-            )
-
         if errors:
             raise ConfigurationError(
                 field="toggle_dependencies",
@@ -210,6 +311,7 @@ class BdsConfig(BaseModel):
     fha_approach: Literal["bds"]
     fha_id: str
     project_name: str
+    is_comparative_analysis: bool = False
     output_dir: Path | None = None
     study_area_config: Path | None = None
     return_periods: list[int]
