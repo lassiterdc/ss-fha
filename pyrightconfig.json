@@ -1,0 +1,8 @@
+{
+  "pythonVersion": "3.11",
+  "typeCheckingMode": "standard",
+  "include": ["src", "tests"],
+  "reportIndexIssue": "none",
+  "reportUnreachable": "none",
+  "reportUnusedFunction": "none"
+}

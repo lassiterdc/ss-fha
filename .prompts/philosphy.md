@@ -2,16 +2,23 @@
 
 Consistent vocabulary is critical for clear communication between developer, AI, and future readers. The following terms have precise meanings in this codebase.
 
-### System vs. Analysis
+### System vs. Analysis vs. Comparative Analysis
 
-These terms align with TRITON-SWMM_toolkit's `system_config` / `analysis_config` distinction:
+These terms align with TRITON-SWMM_toolkit's `system_config` / `analysis_config` distinction, extended with a third tier for multi-FHA comparison workflows:
 
 | Term | Meaning | Config file pattern |
 |------|---------|---------------------|
 | **System** | The fixed physical and geographic context for a case study — the spatial domain, CRS, and all geospatial input files. Shared across all analyses of the same study area. | `system.yaml` |
-| **Analysis** | A specific flood hazard computation layered on top of a system — the FHA method, model output inputs, weather record parameters, workflow toggles, and execution settings. Multiple analyses can share one system. | `analysis_<id>.yaml` |
+| **Analysis** | The primary flood hazard computation for a study area — the FHA method, model output inputs, weather record parameters, event statistics configuration, workflow toggles, and execution settings. Owns the event return period calculations and may reference comparative analyses. | `analysis_<id>.yaml` |
+| **Comparative analysis** | An alternative FHA approach referenced from the analysis config via `alt_fha_analyses`. Uses the same system but different model outputs, `fha_approach`, or driver configuration. Does not own event statistics or list further comparative analyses. Marked explicitly with `is_comparative_analysis: true`. | `analysis_<id>.yaml` (lighter schema) |
 
 **Rule**: Parameters that belong to the geographic domain go in the system config. Parameters that describe a specific computation go in the analysis config. When in doubt: if two analyses of the same study area would always share the value, it's often a system parameter; if they could differ, it's an analysis parameter.
+
+**Analysis vs. comparative analysis rules:**
+- Event return period calculations (`event_statistic_variables`, `weather_event_indices`) belong to the **analysis**, never the comparative analysis. Event statistics are computed once and shared.
+- A comparative analysis sets `is_comparative_analysis: true`. Validation raises an error if a comparative analysis config includes `event_statistic_variables`, `alt_fha_analyses`, or other analysis-only fields.
+- An analysis with `fha_approach: ssfha` and `is_comparative_analysis: false` (the default) **requires** `event_statistic_variables` and `weather_event_indices`, regardless of whether `alt_fha_analyses` is empty.
+- The distinction is explicit (`is_comparative_analysis` toggle), not inferred from schema content. This avoids silent misuse of a comparative config as a standalone analysis.
 
 | Term | Meaning | Usage |
 |------|---------|-------|
@@ -142,12 +149,54 @@ where practical, since they may be versioned separately from code.
 - The only exception currently to the system-agnostic philosphy is in the development testing structure that may reference hard coded local files which will likely be removed in the future once we've implemented the Hydroshare download functionality
 - All system-specific information should be in user defined yaml files
 
+### All hardcoded constants will be housed in one script
+
+- All module-level constants (named `UPPER_SNAKE_CASE`) belong in `src/ss_fha/constants.py`
+- Case-study-specific values (e.g. `n_years_synthesized`, `return_periods`, rain windows) are user YAML config values, not constants
+- Do not define constants in individual modules; import from `constants.py` instead
+
+### Type checking is handled by pyright/Pylance via `pyrightconfig.json` and `.vscode/settings.json`
+
+- The type checking configuration lives in two files:
+    - `pyrightconfig.json` — controls the pyright CLI and is also read by Pylance
+    - `.vscode/settings.json` — controls Pylance-specific overrides via `python.analysis.diagnosticSeverityOverrides` (required because some Pylance settings are not exposed through `pyrightconfig.json`)
+- Do not use `ty` (removed from project; too immature for production use as of early 2026)
+- Resolve type errors with code changes where possible:
+    - Use `.to_numpy()` instead of `.values` when `ndarray` is required (not `ExtensionArray | ndarray`)
+    - Use `str(s.name)` or `str(n) for n in index.names` to narrow `Hashable | None` → `str` for Index names
+    - Use `int(series.idxmin())` to narrow `int | str` when the index is guaranteed integer
+    - Use `cast(pd.DataFrame, ...)` to narrow `Series | DataFrame` return types from `.loc` when the result is always a DataFrame
+- Suppress whole diagnostic categories globally rather than scattering `# type: ignore` in source files
+    - `pyrightconfig.json`: `reportIndexIssue = "none"`, `reportUnreachable = "none"`, `reportUnusedFunction = "none"`
+    - `.vscode/settings.json` `python.analysis.diagnosticSeverityOverrides`: `reportIndexIssue: "none"`, `reportUnreachable: "none"`, `reportUnusedFunction: "none"`
+    - `reportIndexIssue` covers simple pandas `.loc` / `[]` subscript overload false positives
+    - `reportUnreachable` is set but does **not** fix "unreachable code" cascade hints — see cast/annotation fix below
+    - `reportUnusedFunction` suppresses the "not accessed" hint on intentionally-kept private reference functions
+- Fix "unreachable code" cascade hints with code changes, not suppression settings:
+    - Explicitly annotate accumulator lists: `lst: list[pd.DataFrame] = []` instead of `lst = []`. Pylance infers `list[Never]` from an untyped empty list, which propagates `Never` through `pd.concat(lst)` and makes post-loop code unreachable.
+    - Wrap `.loc[]` / `.apply()` calls that return `Never` with `cast(pd.DataFrame, ...)` to break the propagation chain.
+- Use `# type: ignore[index]` for isolated pandas `.loc` / `pd.IndexSlice` calls where the global suppression doesn't apply. The global `reportIndexIssue: "none"` covers simple subscript complaints but **not** overload resolution failures — these still require inline suppression:
+    - `groupby(cols)[col_name]` — fires `Hashable | None` overload error, not `reportIndexIssue`
+    - `.loc[pd.IndexSlice[...]]` with complex tuples — fires `_IndexSliceUnion` assignment error
+    - `.loc[event_idx, col_list]` where `event_idx` is a tuple — fires `tuple[...]` overload error
+    - Verify each `# type: ignore[index]` is load-bearing by removing it and checking diagnostics; remove redundant ones.
+- Use `# type: ignore[union-attr]` when iterating over `Hashable` (e.g., `for v in idx`) guarded by a `hasattr` check — Pylance doesn't narrow `Hashable` based on `hasattr`.
+- Use `# type: ignore` without a code only as a last resort; require developer approval before adding any inline suppression
+
+### All variables, imports, and function arguments should be used
+
+- If you come across unused variables, imports, or function arguments, consider the possibility that implementation is incomplete. If you are uncertain, try to find the planning document(s) that touched that script and function and investigate whether implementation is complete. If you are still uncertain, raise the concern with the developer. Include references to any relevant planning documents and present hypotheses about why those unused elements are present. Make a recommendation about how to proceed.
+- The only exception that will allow unused elements is if those elements are part of a currently-planned implementation. If the variable is included for a planned implementation, add a comment near the unused variable, import, or argument that includes the relative path to the planning document and the reason for its inclusion. If no planning document exists but you suspect those elements are present for future compatability, raise this with the developer and work out the details of a planning document that will leverage those variables.
+
+### Functions all have helpful docstrings, type hints, and type checking
+
 ## Architecture
 
 ### Key Modules
 
 | Module | Purpose |
 |--------|---------|
+| `constants.py` | All project-wide `UPPER_SNAKE_CASE` constants; import from here, never define constants in individual modules |
 | `config/` | Pydantic-based configuration package (different config scripts may be needed for different parts of the process) |
 | `workflow.py` | Dynamic Snakefile generation for parallel execution |
 | `execution.py` | Execution strategies: LocalConcurrentExecutor, SlurmExecutor (no Serial -- set max_workers=1 to serialize) |

@@ -1,4 +1,9 @@
 {
   "python.defaultInterpreterPath": "/home/dcl3nd/miniconda3/envs/ss-fha/bin/python",
-  "python.terminal.activateEnvironment": true
+  "python.terminal.activateEnvironment": true,
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportIndexIssue": "none",
+    "reportUnreachable": "none",
+    "reportUnusedFunction": "none"
+  }
 }
