@@ -33,6 +33,8 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+from ss_fha.constants import ASSIGN_DUP_VALS_MAX_RETURN
+from ss_fha.core.empirical_frequency_analysis import compute_return_periods_for_series
 from ss_fha.exceptions import ComputationError
 
 
@@ -291,8 +293,6 @@ def compute_min_return_period_of_feature_impact(
         Minimum return period of impact in years, or ``nan`` if the feature
         was never impacted.
     """
-    from ss_fha.core.event_statistics import _compute_return_periods_for_series
-
     varname = "feature_impacted"
     s = s_feature_impacted.copy()
     s.name = varname
@@ -300,11 +300,12 @@ def compute_min_return_period_of_feature_impact(
     if not s.any():
         return float("nan")
 
-    df_rtrn_pds = _compute_return_periods_for_series(
+    df_rtrn_pds = compute_return_periods_for_series(
         s,
         n_years=n_years,
         alpha=alpha,
         beta=beta,
+        assign_dup_vals_max_return=ASSIGN_DUP_VALS_MAX_RETURN,
         varname=varname,
     )
 

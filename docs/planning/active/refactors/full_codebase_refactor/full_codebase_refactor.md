@@ -219,9 +219,9 @@ src/ss_fha/
 
     core/
         __init__.py
-        flood_probability.py       # CDF computation, return periods, plotting positions
+        flood_probability.py       # Spatial flood-depth CDF and return period computation via xr.apply_ufunc (compute_emp_cdf_and_return_pds)
         bootstrapping.py           # Bootstrap sampling, combining, quantile analysis
-        empirical_frequency_analysis.py  # Domain-agnostic empirical frequency/return period primitives (calculate_positions, calculate_return_period — split from flood_probability.py in a dedicated refactor commit)
+        empirical_frequency_analysis.py  # Domain-agnostic empirical frequency/return period primitives (calculate_positions, calculate_return_period, compute_return_periods_for_series — split from flood_probability.py and event_statistics.py in work chunk 02E)
         event_statistics.py        # Univariate/multivariate event return periods (was return_periods.py in earlier plan drafts)
         geospatial.py              # Masking, rasterization, feature impact computation
 
@@ -322,7 +322,7 @@ Additionally, maintain a tracking table in this planning document (updated after
 | Old File | Status | Migrated To | Phase |
 |----------|--------|------------|-------|
 | `__inputs.py` | PARTIAL (01A + 01B done — constants and Pydantic config model migrated; paths pending 01C) | `config/model.py`, `config/defaults.py`, `paths.py` | 1 |
-| `__utils.py` | IN PROGRESS — I/O (1D, updated 2D: canonical loader + mask rename), flood probability (2A), bootstrap kernel (2B), event statistics (2C), geospatial primitives (2D) migrated; orchestration functions (flood impact/area return periods) deferred to 3F; combine/QA deferred to 3B | `core/*`, `io/*` | 1D, 2A–2D, 3B, 3F |
+| `__utils.py` | IN PROGRESS — I/O (1D, updated 2D: canonical loader + mask rename), flood probability (2A), bootstrap kernel (2B), event statistics (2C), geospatial primitives (2D), empirical frequency primitives (2E) migrated; orchestration functions (flood impact/area return periods) deferred to 3F; combine/QA deferred to 3B | `core/*`, `io/*` | 1D, 2A–2E, 3B, 3F |
 | `__plotting.py` | NOT STARTED | `visualization/*` | 5 |
 | `b1_analyze_triton_outputs_fld_prob_calcs.py` | NOT STARTED | `analysis/flood_hazard.py` | 3A |
 | `b2b_sim_vs_obs_flod_ppct.py` | NOT STARTED | `analysis/ppcct.py` | 3D |
@@ -810,17 +810,22 @@ Extract from `__utils.py` (spatial primitives only — orchestration functions d
 
 #### Phase 2E: `core/empirical_frequency_analysis.py` — extract domain-agnostic primitives
 
-**Goal**: Split `calculate_positions()` and `calculate_return_period()` out of `core/flood_probability.py` into a new `core/empirical_frequency_analysis.py`. These functions are domain-agnostic (no flood hydrology, no SWMM, no project context) and are used by both `flood_probability.py` and `event_statistics.py`.
+**Goal**: Extract three domain-agnostic empirical frequency primitives into a new `core/empirical_frequency_analysis.py`. These functions contain no flood hydrology, no SWMM, and no project-specific context.
 
-**Scope**:
-- Move `calculate_positions()` and `calculate_return_period()` to `empirical_frequency_analysis.py`
-- Update all internal imports (`flood_probability.py`, `event_statistics.py`, any tests) to import from the new module
-- Consider whether any other candidates in `flood_probability.py` are truly domain-agnostic (e.g., `compute_emp_cdf_and_return_pds` uses flood-specific conventions — likely stays in `flood_probability.py`)
-- Add both moved functions to `docs/planning/utility_package_candidates.md`
+**Functions moved**:
+- `calculate_positions()` — from `flood_probability.py`; numpy-level empirical CDF plotting positions via Hazen family formula
+- `calculate_return_period()` — from `flood_probability.py`; arithmetic conversion of plotting positions to return periods
+- `_compute_return_periods_for_series()` — from `event_statistics.py`; pandas-level pipeline combining both above for a Series. Renamed to `compute_return_periods_for_series()` (public) and gains an explicit required `assign_dup_vals_max_return: bool` argument (replacing the implicit read of the `ASSIGN_DUP_VALS_MAX_RETURN` constant)
 
-**Timing**: This is a pure internal refactor with no new functionality. It should be done as a single dedicated commit after all existing tests pass. Run the full test suite before and after to confirm no regressions.
+**Import sites updated**: `flood_probability.py`, `event_statistics.py`, `geospatial.py`, `tests/test_flood_probability.py`
 
-**Work chunk**: `work_chunks/02E_empirical_frequency_analysis.md` (to be created when this phase begins)
+**Fixes**: `geospatial.py` previously imported a `_private` function from `event_statistics` — a cross-module private import code smell. Now imports the public function from `empirical_frequency_analysis`.
+
+**Not moved**: `compute_emp_cdf_and_return_pds()` stays in `flood_probability.py` — its inputs (`da_wlevel`, spatial `x`/`y` dims, NaN-fill for dry cells) are flood-specific.
+
+**Timing**: Pure internal refactor with no new functionality. Single dedicated commit. Run full test suite before and after to confirm no regressions (165 → 171 tests, 6 new tests for `compute_return_periods_for_series`).
+
+**Work chunk**: `work_chunks/02E_empirical_frequency_analysis.md`
 
 #### Phase 2 Definition of Done
 

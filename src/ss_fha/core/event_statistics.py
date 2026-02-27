@@ -8,7 +8,7 @@ Multivariate return period semantics
 --------------------------------------
 Two exceedance definitions are supported for multivariate return periods.
 Both are computed in complement (non-exceedance) space and converted to
-return periods via ``calculate_return_period`` from ``flood_probability``.
+return periods via ``calculate_return_period`` from ``empirical_frequency_analysis``.
 
 For threshold vector z = (z1, z2, ...):
 
@@ -51,75 +51,15 @@ import numpy as np
 import pandas as pd
 
 from ss_fha.constants import ASSIGN_DUP_VALS_MAX_RETURN, WEATHER_EVENT_INDEX_YEAR_ALIASES
-from ss_fha.core.flood_probability import calculate_positions, calculate_return_period
+from ss_fha.core.empirical_frequency_analysis import (
+    calculate_return_period,
+    compute_return_periods_for_series,
+)
 from ss_fha.exceptions import ComputationError
 
 # ---------------------------------------------------------------------------
 # Private helpers
 # ---------------------------------------------------------------------------
-
-def _compute_return_periods_for_series(
-    s: pd.Series,
-    n_years: int,
-    alpha: float,
-    beta: float,
-    varname: str | None = None,
-) -> pd.DataFrame:
-    """Compute empirical CDF and return periods for a 1-D pandas Series.
-
-    Parameters
-    ----------
-    s:
-        Series of event statistic values indexed by the weather event
-        multi-index (e.g. ``(event_type, year, event_id)``).
-    n_years:
-        Total number of synthesized years in the weather model run.
-        Used as the denominator for return period calculations.
-    alpha:
-        Plotting position parameter (Weibull: 0.0).
-    beta:
-        Plotting position parameter (Weibull: 0.0).
-    varname:
-        Column name for the statistic values in the returned DataFrame.
-        Defaults to ``s.name``.
-
-    Returns
-    -------
-    pd.DataFrame
-        Columns: ``[varname, f"{varname}_emp_cdf", f"{varname}_return_pd_yrs"]``.
-        Indexed by the original index of ``s``, sorted ascending by statistic value.
-    """
-    if varname is None:
-        varname = str(s.name)
-    og_name = str(s.name)
-    s = s.copy()
-    s.name = varname
-
-    s_sorted = s.sort_values()
-    og_idx = s_sorted.index
-    s_sorted = s_sorted.reset_index(drop=True)
-
-    n_events = len(s_sorted)
-    plt_pos = calculate_positions(s_sorted.to_numpy(), alpha=alpha, beta=beta, fillna_val=0.0)
-    rtrn_pds = calculate_return_period(plt_pos, n_years=n_years, n_events=n_events)
-
-    s_plt_pos = pd.Series(plt_pos, name=f"{varname}_emp_cdf")
-    s_rtrn = pd.Series(rtrn_pds, name=f"{varname}_return_pd_yrs")
-    df = pd.concat([s_sorted, s_plt_pos, s_rtrn], axis=1)
-    df.index = og_idx
-
-    if ASSIGN_DUP_VALS_MAX_RETURN:
-        idx_max_rtrn_by_val = df.groupby(varname).idxmax().iloc[:, 0]
-        df_maxrtrn = (
-            df.loc[idx_max_rtrn_by_val, :]
-            .reset_index(drop=True)
-            .set_index(varname)
-        )
-        df = s.to_frame().join(df_maxrtrn, how="left", on=varname)
-
-    df = df.rename(columns={varname: og_name})
-    return df.sort_index()
-
 
 def _shorten_rain_stat_name(varname: str) -> str:
     """Convert a rainfall statistic column name to a compact label.
@@ -470,7 +410,9 @@ def compute_univariate_event_return_periods(
         )
         s_max = _df_max[precip_varname]
         s_max.name = varname
-        df_rain = _compute_return_periods_for_series(s_max, n_years, alpha, beta)
+        df_rain = compute_return_periods_for_series(
+            s_max, n_years, alpha, beta, assign_dup_vals_max_return=ASSIGN_DUP_VALS_MAX_RETURN
+        )
         lst_df_rain.append(df_rain)
 
     df_rain_return_pds = pd.concat(lst_df_rain, axis=1)
@@ -485,8 +427,8 @@ def compute_univariate_event_return_periods(
         .dropna()
     )
     s_peak_stage.name = f"max_{stage_varname}"
-    df_stage_return_pds = _compute_return_periods_for_series(
-        s_peak_stage, n_years, alpha, beta
+    df_stage_return_pds = compute_return_periods_for_series(
+        s_peak_stage, n_years, alpha, beta, assign_dup_vals_max_return=ASSIGN_DUP_VALS_MAX_RETURN
     )
     return df_rain_return_pds, df_stage_return_pds
 
