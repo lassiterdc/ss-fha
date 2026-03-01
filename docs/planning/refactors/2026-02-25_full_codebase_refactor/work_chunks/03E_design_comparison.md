@@ -9,7 +9,7 @@
 
 Review the following documents before making any edits to plans or writing any code:
 
-- [`docs/planning/active/refactors/full_codebase_refactor/full_codebase_refactor.md`](../full_codebase_refactor.md) — master refactor plan; pay particular attention to the **Multi-FHA Analysis Design** section under "Four Core Workflows".
+- [`docs/planning/refactors/2026-02-25_full_codebase_refactor/full_codebase_refactor.md`](../full_codebase_refactor.md) — master refactor plan; pay particular attention to the **Multi-FHA Analysis Design** section under "Four Core Workflows".
 - [`CONTRIBUTING.md`](../../../../CONTRIBUTING.md) — project development philosophy; all implementation decisions must align with it.
 
 **Prerequisite**: Workflow 1 outputs from all participating FHA approaches must be complete (i.e., 03A must have run for each `fha_id` being compared).

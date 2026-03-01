@@ -75,7 +75,6 @@ If you come across an unused variable, import, or function argument, investigate
 1. Check whether the surrounding implementation is incomplete
 2. Find planning documents that touched that function and determine whether implementation is planned
 3. If still uncertain, raise the concern with the developer with hypotheses about why it exists
-4. The only exception: elements included for a currently-planned implementation, marked with a comment referencing the planning document
 
 Report your observations, hypotheses, and recommendations to the developer.
 

@@ -125,7 +125,7 @@ Items below must be resolved before Phase 6 (case study validation).
 ## Decisions Made
 
 All decisions are recorded in detail in:
-`docs/planning/active/refactors/full_codebase_refactor/implemented/00_case_study_yaml_setup.md`
+`docs/planning/refactors/2026-02-25_full_codebase_refactor/implemented/00_case_study_yaml_setup.md`
 
 Summary:
 

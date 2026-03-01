@@ -9,7 +9,7 @@
 
 Review the following documents before making any edits to plans or writing any code:
 
-- [`docs/planning/active/refactors/full_codebase_refactor/full_codebase_refactor.md`](../full_codebase_refactor.md) — master refactor plan; update it if any decisions made here affect the overall plan.
+- [`docs/planning/refactors/2026-02-25_full_codebase_refactor/full_codebase_refactor.md`](../full_codebase_refactor.md) — master refactor plan; update it if any decisions made here affect the overall plan.
 - [`CONTRIBUTING.md`](../../../../CONTRIBUTING.md) — project development philosophy; all implementation decisions must align with it.
 
 **Prerequisite**: Workflow 1 outputs (03A). Optionally uses Workflow 2 CI outputs (03B).

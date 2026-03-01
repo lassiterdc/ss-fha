@@ -9,7 +9,7 @@
 
 Review the following documents before making any edits to plans or writing any code:
 
-- [`docs/planning/active/refactors/full_codebase_refactor/full_codebase_refactor.md`](../full_codebase_refactor.md) — master refactor plan; update it if any decisions made here affect the overall plan.
+- [`docs/planning/refactors/2026-02-25_full_codebase_refactor/full_codebase_refactor.md`](../full_codebase_refactor.md) — master refactor plan; update it if any decisions made here affect the overall plan.
 - [`CONTRIBUTING.md`](../../../../CONTRIBUTING.md) — project development philosophy; all implementation decisions must align with it.
 
 **Prerequisite**: Work chunk 02A complete (`ss_fha.core.flood_probability` importable, since bootstrapping calls its return period functions).
@@ -101,7 +101,7 @@ Extract the pure computation kernel from `bootstrapping_return_period_estimates`
 |------|--------|
 | `_old_code_to_refactor/__utils.py` | Update refactoring status block |
 | `src/ss_fha/config/model.py` | Add `bootstrap_base_seed: int` to uncertainty config block |
-| `docs/planning/active/refactors/full_codebase_refactor/full_codebase_refactor.md` | Update Phase 2B description and tracking table |
+| `docs/planning/refactors/2026-02-25_full_codebase_refactor/full_codebase_refactor.md` | Update Phase 2B description and tracking table |
 
 ---
 

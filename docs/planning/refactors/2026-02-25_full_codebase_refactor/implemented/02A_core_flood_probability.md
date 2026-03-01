@@ -9,7 +9,7 @@
 
 Review the following documents before making any edits to plans or writing any code:
 
-- [`docs/planning/active/refactors/full_codebase_refactor/full_codebase_refactor.md`](../full_codebase_refactor.md) — master refactor plan; update it if any decisions made here affect the overall plan.
+- [`docs/planning/refactors/2026-02-25_full_codebase_refactor/full_codebase_refactor.md`](../full_codebase_refactor.md) — master refactor plan; update it if any decisions made here affect the overall plan.
 - [`CONTRIBUTING.md`](../../../../CONTRIBUTING.md) — project development philosophy; all implementation decisions must align with it.
 
 **Prerequisite**: All Phase 1 work chunks complete (01A–01G).
@@ -90,7 +90,7 @@ Read each function in `__utils.py`, strip any I/O, add type annotations, then wr
 |------|--------|
 | `_old_code_to_refactor/__utils.py` | Update refactoring status block to note migrated functions |
 | `docs/planning/utility_package_candidates.md` | Add `sort_dimensions` as candidate |
-| `docs/planning/active/refactors/full_codebase_refactor/full_codebase_refactor.md` | Update tracking table for migrated functions |
+| `docs/planning/refactors/2026-02-25_full_codebase_refactor/full_codebase_refactor.md` | Update tracking table for migrated functions |
 
 ---
 

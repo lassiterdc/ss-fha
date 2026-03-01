@@ -9,7 +9,7 @@
 
 Review the following documents before making any edits to plans or writing any code:
 
-- [`docs/planning/active/refactors/full_codebase_refactor/full_codebase_refactor.md`](../full_codebase_refactor.md) — master refactor plan; update it if any decisions made here affect the overall plan.
+- [`docs/planning/refactors/2026-02-25_full_codebase_refactor/full_codebase_refactor.md`](../full_codebase_refactor.md) — master refactor plan; update it if any decisions made here affect the overall plan.
 - [`CONTRIBUTING.md`](../../../../CONTRIBUTING.md) — project development philosophy; all implementation decisions must align with it.
 
 **Prerequisite**: None — this is the first task and has no code dependencies.
@@ -341,10 +341,10 @@ alt_fha_analyses:
 
 | File | Change |
 |------|--------|
-| `docs/planning/active/refactors/full_codebase_refactor/work_chunks/README.md` | Add 00 to status table |
-| `docs/planning/active/refactors/full_codebase_refactor/full_codebase_refactor.md` | Update Phase 0 section; update filenames, terminology, MCDS design, TritonOutputsConfig field names |
-| `docs/planning/active/refactors/full_codebase_refactor/work_chunks/01D_io_layer.md` | Add note about raw vs. clipped decision and `clip_to` parameter design |
-| `docs/planning/active/refactors/full_codebase_refactor/work_chunks/01B_pydantic_config_model.md` | Update `TritonOutputsConfig.compound` → `.combined`; add MCDS toggle field; add smoke test to DoD |
+| `docs/planning/refactors/2026-02-25_full_codebase_refactor/work_chunks/README.md` | Add 00 to status table |
+| `docs/planning/refactors/2026-02-25_full_codebase_refactor/full_codebase_refactor.md` | Update Phase 0 section; update filenames, terminology, MCDS design, TritonOutputsConfig field names |
+| `docs/planning/refactors/2026-02-25_full_codebase_refactor/work_chunks/01D_io_layer.md` | Add note about raw vs. clipped decision and `clip_to` parameter design |
+| `docs/planning/refactors/2026-02-25_full_codebase_refactor/work_chunks/01B_pydantic_config_model.md` | Update `TritonOutputsConfig.compound` → `.combined`; add MCDS toggle field; add smoke test to DoD |
 | `CLAUDE.md Terminology section` | Add Terminology section defining combined vs. compound |
 
 ---

@@ -9,7 +9,7 @@
 
 Review the following documents before making any edits to plans or writing any code:
 
-- [`docs/planning/active/refactors/full_codebase_refactor/full_codebase_refactor.md`](../full_codebase_refactor.md) — master refactor plan; update it if any decisions made here affect the overall plan.
+- [`docs/planning/refactors/2026-02-25_full_codebase_refactor/full_codebase_refactor.md`](../full_codebase_refactor.md) — master refactor plan; update it if any decisions made here affect the overall plan.
 - [`CONTRIBUTING.md`](../../../../CONTRIBUTING.md) — project development philosophy; all implementation decisions must align with it.
 
 **Prerequisite**: All Phases 1–5 complete.
@@ -128,7 +128,7 @@ time pytest tests/ -k "not slow and not UVA" -v
 
 ## Documentation and Tracker Updates
 
-- After all outputs validated: move `full_codebase_refactor.md` from `docs/planning/active/refactors/full_codebase_refactor/` to `docs/planning/completed/`.
+- After all outputs validated: move `full_codebase_refactor.md` from `docs/planning/refactors/2026-02-25_full_codebase_refactor/` to `docs/planning/completed/`.
 - Update CHANGELOG with release notes for v1.0.
 
 ---

@@ -9,7 +9,7 @@
 
 Review the following documents before making any edits to plans or writing any code:
 
-- [`docs/planning/active/refactors/full_codebase_refactor/full_codebase_refactor.md`](../full_codebase_refactor.md) — master refactor plan.
+- [`docs/planning/refactors/2026-02-25_full_codebase_refactor/full_codebase_refactor.md`](../full_codebase_refactor.md) — master refactor plan.
 - [`CONTRIBUTING.md`](../../../../CONTRIBUTING.md) — project development philosophy.
 
 **Prerequisite**: All Phases 1–5 complete and `test_end_to_end.py` passing locally with synthetic data. This work chunk is the gate between local development and HPC testing.
