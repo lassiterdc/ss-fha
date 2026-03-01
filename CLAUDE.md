@@ -32,6 +32,11 @@ This project uses a conda environment named `ss-fha`.
 
 ## Terminology
 
+See domain glossaries for shared definitions:
+- `~/dev/claude-workspace/glossary/flood_risk_management.md` — combined, compound, rain-only, surge-only, BDS, SSFHA, MCDS, event_iloc
+- `~/dev/claude-workspace/glossary/hydrology.md` — storm surge, storm tide, tidal phase, return period, AEP
+- `~/dev/claude-workspace/glossary/statistics.md` — marginal distribution, copula, vine copula, KNN resampling, Poisson process
+
 ### System vs. Analysis vs. Comparative Analysis
 
 These terms align with TRITON-SWMM_toolkit's `system_config` / `analysis_config` distinction, extended with a third tier for multi-FHA comparison workflows:
@@ -50,22 +55,13 @@ These terms align with TRITON-SWMM_toolkit's `system_config` / `analysis_config`
 - An analysis with `fha_approach: ssfha` and `is_comparative_analysis: false` (the default) **requires** `event_statistic_variables` and `weather_event_indices`, regardless of whether `alt_fha_analyses` is empty.
 - The distinction is explicit (`is_comparative_analysis` toggle), not inferred from schema content. This avoids silent misuse of a comparative config as a standalone analysis.
 
-### Simulation and Method Terminology
+### Project-specific simulation and method terms
 
 | Term | Meaning | Usage |
 |------|---------|-------|
-| **Combined** | A simulation that includes *both* rainfall and storm tide as flood drivers | Simulation type label — zarr filenames, `fha_id`, config fields, code variables |
-| **Compound** | Flooding that is *worsened* by the simultaneous presence of multiple drivers — a phenomenon, not a simulation type | Scientific/descriptive use only (e.g., "compound flood hazard", "compound flooding") |
-| **Rain-only** | A simulation that includes only the rainfall driver (surge set to a constant background level) | Simulation type label |
-| **Surge-only** | A simulation that includes only the storm tide driver (rainfall excluded) | Simulation type label |
 | **TRITON-only** | A simulation using the TRITON 2D model without SWMM coupling for urban drainage | Simulation type label |
-| **BDS** | Basic Design Storm — a deterministic flood hazard approach using one event per return period | `fha_approach` value |
-| **MCDS** | Monte Carlo Design Storm — subsets design storms from the stochastic ensemble within a CI band around a target return period | Implemented as `toggle_mcds` on SSFHA config, not as a separate `fha_approach` |
-| **SSFHA** | Semicontinuous Simulation-based Flood Hazard Assessment — the primary method implemented here | `fha_approach: ssfha` |
 | **event_iloc** | The canonical flat integer index uniquely identifying a single simulated event within the zarr model output. Connects simulation results to meteorological inputs via the iloc mapping CSV (e.g. `ss_event_iloc_mapping.csv`). Used as an xarray dimension name (`event_iloc`) and as a CSV column name. Not to be confused with `event_id` (the 3D sub-index within a year/event_type slice) or `event_number` (deprecated term — always use `event_iloc`). | xarray dim, CSV column, code variables |
 | **ss** | When a boolean flag or branch distinguishes the semicontinuous simulation ensemble from design storms, use `ss` — never `ensemble`. The SSFHA output *is* an ensemble, but `ensemble` is too generic and obscures the distinction from BDS. Example: `is_ss: bool` rather than `is_ensemble: bool`. Legacy uses of `ensemble` as a branch variable in ported functions should be renamed to `is_ss` during porting. | function arguments, branch variable names |
-
-**Rule**: Never use "compound" to describe a simulation type (e.g., "compound simulation", "compound zarr"). Use "combined" instead. Use "compound" only when describing the *phenomenon* of compound flooding.
 
 ---
 
