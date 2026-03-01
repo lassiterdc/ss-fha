@@ -41,7 +41,8 @@ typecheck = [
     "pyright",
 ]
 docs = [
-    "zensical",
+    "mkdocs",
+    "mkdocs-material",
     "mkdocstrings-python",
 ]
 
@@ -98,8 +99,3 @@ markers = [
 [tool.uv]
 package = true
 default-groups = ["dev"]
-
-
-[tool.esbonio.sphinx]
-buildCommand = ["sphinx-build", "-b", "html", "docs", "docs/_build"]
-pythonCommand = ["/home/dcl3nd/miniconda3/envs/ss-fha/bin/python"]

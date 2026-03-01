@@ -1,59 +1,25 @@
-# ss-fha
+# SS-FHA
 
-![PyPI version](https://img.shields.io/pypi/v/ss-fha.svg)
+Semicontinuous simulation-based flood hazard assessment framework.
 
-SS-FHA framework
+## Installation
 
-* Created by **[Daniel Lassiter](https://github.com/lassiterdc)**
-  * PyPI: https://pypi.org/user/lassiterdc/
-* PyPI package: https://pypi.org/project/ss-fha/
-* Free software: MIT License
+```bash
+pip install ss-fha
+```
 
-## Features
+> **Note**: PyPI publishing requires one-time setup of [trusted publishers](https://docs.pypi.org/trusted-publishers/) on pypi.org and test.pypi.org. See the [Copier Update Guide](https://github.com/lassiterdc/copier-python-template/blob/main/COPIER_UPDATE_GUIDE.md) for setup instructions.
 
-* TODO
+## Quick start
+
+```python
+import ss_fha
+```
 
 ## Documentation
 
-Documentation is built with [Zensical](https://zensical.org/) and deployed to GitHub Pages.
-
-* **Live site:** https://lassiterdc.github.io/ss_fha/
-* **Preview locally:** `just docs-serve` (serves at http://localhost:8000)
-* **Build:** `just docs-build`
-
-API documentation is auto-generated from docstrings using [mkdocstrings](https://mkdocstrings.github.io/).
-
-Docs deploy automatically on push to `main` via GitHub Actions. To enable this, go to your repo's Settings > Pages and set the source to **GitHub Actions**.
+Full documentation at [GitHub Pages](https://lassiterdc.github.io/ss_fha/).
 
 ## Development
 
-To set up for local development:
-
-```bash
-# Clone your fork
-git clone git@github.com:your_username/ss-fha.git
-cd ss-fha
-
-# Install in editable mode with live updates
-uv tool install --editable .
-```
-
-This installs the CLI globally but with live updates - any changes you make to the source code are immediately available when you run `ss_fha`.
-
-Run tests:
-
-```bash
-uv run pytest
-```
-
-Run quality checks (format, lint, type check, test):
-
-```bash
-just qa
-```
-
-## Author
-
-ss-fha was created in 2026 by Daniel Lassiter.
-
-Built with [Cookiecutter](https://github.com/cookiecutter/cookiecutter) and the [audreyfeldroy/cookiecutter-pypackage](https://github.com/audreyfeldroy/cookiecutter-pypackage) project template.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and contribution guidelines.

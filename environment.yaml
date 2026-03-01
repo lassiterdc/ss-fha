@@ -1,22 +1,22 @@
 # to run:
 # if environment already exists, first run:
 # conda deactivate
-# conda env remove -n triton_swmm_toolkit
+# conda env remove -n ss_fha
 # then:
 # either:
   # clean install, no use of :
-    # conda create -n triton_swmm_toolkit python=3.11 --no-default-packages
-    # conda activate triton_swmm_toolkit
+    # conda create -n ss_fha python=3.11 --no-default-packages
+    # conda activate ss_fha
     # export PYTHONNOUSERSITE=1
     # conda env update -f environment.yaml
   # create directly from environment yaml
     # module purge
     # module load {conda app, e.g., miniforge}
     # conda env create -f environment.yaml
-    # conda (or source) activate triton_swmm_toolkit
+    # conda (or source) activate ss_fha
 # to use development version if git cloned:
   # python -m pip install -e .
-name: triton_swmm_toolkit
+name: ss_fha
 channels:
   - conda-forge
   - bioconda

@@ -1,5 +1,3 @@
-sphinx
-sphinx-rtd-theme
-nbsphinx
-jupyter
-sphinxcontrib-mermaid
+mkdocs
+mkdocs-material
+mkdocstrings[python]
