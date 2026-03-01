@@ -15,10 +15,10 @@ Read `~/dev/claude-workspace/specialist_agent_docs/planning-document-lifecycle.m
 
 ## Environment
 
-This project uses a conda environment named `ss_fha`.
+This project uses a conda environment named `ss-fha`.
 
-- **Running tools**: Use `conda run -n ss_fha <command>` or activate the environment first with `conda activate ss_fha`.
-- **Copier updates**: When running `copier update` through `conda run`, pass `--defaults` since there is no interactive terminal: `conda run -n ss_fha copier update --trust --skip-tasks --defaults`.
+- **Running tools**: Use `conda run -n ss-fha <command>` or activate the environment first with `conda activate ss-fha`.
+- **Copier updates**: When running `copier update` through `conda run`, pass `--defaults` since there is no interactive terminal: `conda run -n ss-fha copier update --trust --skip-tasks --defaults`.
 
 ---
 
