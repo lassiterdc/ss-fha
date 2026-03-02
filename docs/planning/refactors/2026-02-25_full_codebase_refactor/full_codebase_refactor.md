@@ -324,7 +324,7 @@ Additionally, maintain a tracking table in this planning document (updated after
 | `__inputs.py` | PARTIAL (01A + 01B done — constants and Pydantic config model migrated; paths pending 01C) | `config/model.py`, `config/defaults.py`, `paths.py` | 1 |
 | `__utils.py` | IN PROGRESS — I/O (1D, updated 2D: canonical loader + mask rename), flood probability (2A), bootstrap kernel (2B), event statistics (2C), geospatial primitives (2D), empirical frequency primitives (2E) migrated; orchestration functions (flood impact/area return periods) deferred to 3F; combine/QA deferred to 3B | `core/*`, `io/*` | 1D, 2A–2E, 3B, 3F |
 | `__plotting.py` | NOT STARTED | `visualization/*` | 5 |
-| `b1_analyze_triton_outputs_fld_prob_calcs.py` | NOT STARTED | `analysis/flood_hazard.py` | 3A |
+| `b1_analyze_triton_outputs_fld_prob_calcs.py` | COMPLETE | `analysis/flood_hazard.py` | 3A |
 | `b2b_sim_vs_obs_flod_ppct.py` | NOT STARTED | `analysis/ppcct.py` | 3D |
 | `b2c_sim_vs_obs_fld_ppct.py` | NOT STARTED | `analysis/ppcct.py` | 3D |
 | `b2d_sim_vs_obs_fld_ppct.py` | NOT STARTED | `analysis/ppcct.py` + `visualization/` | 3D, 5 |
@@ -977,6 +977,7 @@ Replaces: `f1_*`, `f2_*` scripts
 | HydroShare download may be slow or unavailable | Case study tests fail | Cache downloaded data; mock HydroShare in unit tests; only require download for integration tests |
 | SLURM environments vary significantly | Workflow fails on untested HPC | Platform configs with explicit validation; document tested platforms |
 | Snakemake 9.x API differs from examples in older TRITON-SWMM_toolkit | Workflow generation code incompatible | Target 9.15.0 specifically; use `--executor slurm` plugin API, not legacy `--cluster` |
+| **Full-scale memory allocation in `run_flood_hazard()`** | OOM at ~3700 events x 550x550 grid (~25 GB for 3 float64 arrays). The `.compute()` before `write_zarr()` materializes the entire result into RAM — a workaround for zarr V3's inability to serialize dask masked arrays from `.where(mask)`. This was a known pain point in the original development. | **Must be profiled during Phase 6 case study validation.** Options: (a) chunk the `.compute()` along event_iloc in slices, writing incrementally; (b) apply mask via `np.where(mask, data, np.nan)` on computed chunks instead of xarray `.where()` to avoid masked arrays; (c) switch to zarr V2 which handles masked arrays natively. The synthetic test data (8 events, 10x10 grid) does not exercise this path. |
 
 ---
 

@@ -20,6 +20,12 @@ n_years_synthesized: 1000  # Total synthetic years in the weather model run, INC
                             # TODO: Confirm against TRITON-SWMM_toolkit weather model
                             #       run metadata before Phase 6 validation.
 
+# --- Plotting position parameters ---
+# Weibull plotting position (alpha=0, beta=0): p_i = i / (n + 1).
+# Source: ALPHA, BETA = 0, 0 in legacy __inputs.py.
+alpha: 0.0
+beta: 0.0
+
 # --- Return periods ---
 return_periods: [1, 2, 10, 100]
 

@@ -26,6 +26,8 @@ _MINIMAL_SSFHA_DICT = {
     "toggle_ppcct": False,
     "toggle_flood_risk": False,
     "toggle_design_comparison": False,
+    "alpha": 0.0,
+    "beta": 0.0,
     "triton_outputs": {"combined": "/tmp/fake_combined.zarr"},
     "event_data": {"sim_event_summaries": "/tmp/fake_summaries.csv"},
     "execution": {"mode": "local_concurrent"},

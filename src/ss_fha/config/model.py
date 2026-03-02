@@ -81,6 +81,9 @@ class SystemConfig(BaseModel):
 class TritonOutputsConfig(BaseModel):
     combined: Path
     observed: Path | None = None
+    surge_only: Path | None = None
+    rain_only: Path | None = None
+    triton_only_combined: Path | None = None
 
 
 class EventDataConfig(BaseModel):
@@ -206,6 +209,8 @@ class SsfhaConfig(BaseModel):
     study_area_config: Path | None = None
     n_years_synthesized: int
     return_periods: list[int]
+    alpha: float
+    beta: float
     toggle_uncertainty: bool
     toggle_mcds: bool
     toggle_ppcct: bool

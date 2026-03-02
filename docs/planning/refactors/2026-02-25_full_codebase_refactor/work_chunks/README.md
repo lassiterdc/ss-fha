@@ -23,7 +23,7 @@ When a chunk is fully implemented and all checklist items are checked, move it t
 | `02C_core_event_statistics.md` | 2C | **Complete** — moved to `implemented/` 2026-02-26 |
 | `02D_core_geospatial.md` | 2D | **Complete** — moved to `implemented/` 2026-02-26 |
 | `02E_empirical_frequency_analysis.md` | 2E | **Complete** — moved to `implemented/` 2026-02-26 |
-| `03A_workflow1_flood_hazard.md` | 3A | Pending |
+| `03A_workflow1_flood_hazard.md` | 3A | **Complete** — 2026-03-01 |
 | `03B_workflow2_uncertainty.md` | 3B | Pending |
 | `03C_event_statistics_runner.md` | 3C | Pending |
 | `03D_workflow3_ppcct.md` | 3D | Pending |

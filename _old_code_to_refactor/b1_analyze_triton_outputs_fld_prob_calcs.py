@@ -1,3 +1,19 @@
+# =============================================================================
+# REFACTORING STATUS (chunk 03A — 2026-03-01)
+# =============================================================================
+# STATUS: COMPLETE — replaced by src/ss_fha/analysis/flood_hazard.py
+#
+# Migrated to src/ss_fha/analysis/flood_hazard.py:
+#   run_flood_hazard()             — orchestrates load, mask, compute, write
+#   resolve_triton_zarr_path()     — resolves sim_type to zarr path via config
+#   _validate_triton_schema()      — validates TRITON zarr structure
+#
+# Migrated to src/ss_fha/runners/flood_hazard_runner.py:
+#   CLI entry point (argparse)     — replaces direct script execution
+#
+# Tests: tests/test_flood_hazard_workflow.py (9 integration tests)
+# =============================================================================
+
 # %%
 import sys
 import os

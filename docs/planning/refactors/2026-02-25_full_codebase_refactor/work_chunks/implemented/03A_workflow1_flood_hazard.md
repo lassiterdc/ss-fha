@@ -1,7 +1,7 @@
 # Work Chunk 03A: Workflow 1 — Flood Hazard Assessment
 
 **Phase**: 3A — Analysis Modules + Runner Scripts (Flood Hazard)
-**Last edited**: 2026-02-25
+**Last edited**: 2026-03-01 — preflight review: resolved decisions on masking, alpha/beta config, sim-type CLI values, output naming; fixed terminology and test file references
 
 ---
 
@@ -46,15 +46,19 @@ Implement Workflow 1 (Flood Hazard Assessment) as an analysis module and a Snake
 
 - **Per philosophy.md**: runner scripts log to stdout; Snakemake captures this as a logfile. Use structured log messages with timestamps.
 - **Log-based completion check**: the runner must emit a specific completion log line (e.g., `"COMPLETE: flood_hazard combined"`) that Snakemake rules can verify.
-- **`--sim-type`** controls which TRITON output is loaded; the config provides the path for that sim type.
+- **`--sim-type`** controls which TRITON output is loaded; the config provides the path for that sim type. Values use underscores: `combined`, `surge_only`, `rain_only`, `triton_only_combined`.
 - **Fail fast**: if the TRITON zarr path for the requested `--sim-type` is not in the config, raise `ConfigurationError` immediately.
-- **No QAQC plots in this chunk** — visualization is Phase 5. Toggle design for QAQC plots should be stubbed (see master plan assumption 4).
+- **No QAQC plots in this chunk** — visualization is Phase 5. Stub the toggle guard with a planning-doc reference comment per `planning-document-lifecycle.md` conventions.
+- **Watershed masking**: apply the watershed mask before computing flood probabilities; cells outside the watershed are set to NaN. This reduces computation and produces cleaner output.
+- **Input zarr is already flat on `event_iloc`**: no stacking step needed — TRITON-SWMM_toolkit produces the flat schema upstream.
+- **`alpha` and `beta` plotting position parameters**: add to `SsfhaConfig` (no defaults — users must choose explicitly). This requires modifying `config/model.py`.
+- **Output naming**: `{flood_probs_dir}/{sim_type}.zarr` (e.g., `flood_probabilities/combined.zarr`).
 
 ### Success Criteria
 
-- `python -m ss_fha.runners.flood_hazard_runner --config test_config.yaml --sim-type compound` runs end-to-end with synthetic data
+- `python -m ss_fha.runners.flood_hazard_runner --config test_config.yaml --sim-type combined` runs end-to-end with synthetic data
 - Output zarr exists and passes `assert_zarr_valid()`
-- Integration test using `build_minimal_test_case` passes
+- Integration test in `tests/test_flood_hazard_workflow.py` using `build_minimal_test_case` passes
 
 ---
 
@@ -79,12 +83,14 @@ Before implementing, inspect:
 | `src/ss_fha/analysis/flood_hazard.py` | Workflow 1 orchestration |
 | `src/ss_fha/runners/__init__.py` | Package stub |
 | `src/ss_fha/runners/flood_hazard_runner.py` | CLI entry point |
-| (add tests to) `tests/test_end_to_end.py` | Integration test for Workflow 1 |
+| `tests/test_flood_hazard_workflow.py` | Integration test for Workflow 1 |
 
 ### Modified Files
 
 | File | Change |
 |------|--------|
+| `src/ss_fha/config/model.py` | Add `alpha` and `beta` plotting position fields to `SsfhaConfig` |
+| `tests/utils_for_testing.py` | Tighten `assert_flood_probs_valid()` to check for `empirical_cdf` and `return_pd_yrs` |
 | `_old_code_to_refactor/b1_analyze_triton_outputs_fld_prob_calcs.py` | Add refactoring status block |
 
 ---
@@ -96,24 +102,18 @@ Before implementing, inspect:
 | TRITON zarr schema varies — wrong variable/dimension names | Validate zarr schema before processing; raise `DataError` with clear message |
 | Runner called with sim-type not in config | Raise `ConfigurationError` immediately with fix hint |
 | Dask chunking: wrong chunk sizes cause memory issues | Use chunking strategy from old code initially; document for later optimization |
+| **Full-scale `.compute()` OOM** — zarr V3 can't serialize dask masked arrays, so `ds_flood_probs.compute()` materializes ~25 GB at full scale (3700 events x 550x550 grid) | Workaround applied with code comment + risk entry in master plan. Must be profiled during Phase 6 case study validation. See `full_codebase_refactor.md` Risks table for mitigation options. |
 
 ---
 
 ## Validation Plan
 
 ```bash
-# Runner smoke test with synthetic config
-python -m ss_fha.runners.flood_hazard_runner --config /tmp/ssfha_test/config.yaml --sim-type compound
+# Integration test (primary validation — uses synthetic data via build_minimal_test_case)
+conda run -n ss-fha pytest tests/test_flood_hazard_workflow.py -v
 
-# Integration test
-pytest tests/test_end_to_end.py::test_workflow1_flood_hazard -v
-
-# Output validation
-python -c "
-from tests.utils_for_testing import assert_zarr_valid
-from pathlib import Path
-assert_zarr_valid(Path('/tmp/ssfha_test/outputs/flood_probabilities/compound.zarr'))
-"
+# Existing tests still pass
+conda run -n ss-fha pytest tests/ -v
 ```
 
 ---
@@ -127,11 +127,11 @@ assert_zarr_valid(Path('/tmp/ssfha_test/outputs/flood_probabilities/compound.zar
 
 ## Definition of Done
 
-- [ ] `src/ss_fha/analysis/flood_hazard.py` implemented
-- [ ] `src/ss_fha/runners/flood_hazard_runner.py` implemented with argparse CLI
-- [ ] Runner logs to stdout with structured messages and a completion marker
-- [ ] Runner fails fast with `ConfigurationError` for missing sim-type config
-- [ ] Integration test using synthetic test case passes
-- [ ] Output zarr passes `assert_zarr_valid()` and `assert_flood_probs_valid()`
-- [ ] `full_codebase_refactor.md` tracking table updated
+- [x] `src/ss_fha/analysis/flood_hazard.py` implemented
+- [x] `src/ss_fha/runners/flood_hazard_runner.py` implemented with argparse CLI
+- [x] Runner logs to stdout with structured messages and a completion marker
+- [x] Runner fails fast with `ConfigurationError` for missing sim-type config
+- [x] Integration test using synthetic test case passes
+- [x] Output zarr passes `assert_zarr_valid()` and `assert_flood_probs_valid()`
+- [x] `full_codebase_refactor.md` tracking table updated
 - [ ] **Move this document to `../implemented/` once all boxes above are checked**

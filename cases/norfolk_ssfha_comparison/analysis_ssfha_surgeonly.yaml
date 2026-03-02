@@ -16,6 +16,10 @@ n_years_synthesized: 1000  # Same weather model run as the combined analysis.
                             # Denominator for all simulated return period calculations.
                             # DO NOT infer from len(ds.year) — that gives 954, not 1000.
 
+# --- Plotting position parameters ---
+alpha: 0.0
+beta: 0.0
+
 # --- Return periods ---
 return_periods: [1, 2, 10, 100]
 

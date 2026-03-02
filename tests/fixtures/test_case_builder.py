@@ -265,6 +265,8 @@ def build_minimal_test_case(tmp_path: Path) -> SSFHAConfig:
         "output_dir": str(tmp_path / "output"),
         "n_years_synthesized": 100,
         "return_periods": [1, 2, 10, 100],
+        "alpha": 0.0,
+        "beta": 0.0,
         "toggle_uncertainty": False,
         "toggle_mcds": False,
         "toggle_ppcct": False,

@@ -15,12 +15,14 @@ The primary purpose of this codebase is computing flood hazard and flood hazard 
 | Module | Purpose |
 |--------|---------|
 | `constants.py` | All project-wide `UPPER_SNAKE_CASE` constants; import from here, never define constants in individual modules |
-| `config/` | Pydantic-based configuration package (different config scripts may be needed for different parts of the process) |
+| `config/` | Pydantic v2 configuration models, YAML loader, and defaults (`model.py`, `loader.py`, `defaults.py`) |
 | `workflow.py` | Dynamic Snakefile generation for parallel execution |
 | `execution.py` | Execution strategies: LocalConcurrentExecutor, SlurmExecutor (no Serial — set max_workers=1 to serialize) |
 | `resource_management.py` | CPU/GPU/memory allocation for HPC |
 | `sensitivity_analysis.py` | Parameter sweep orchestration with sub-analyses |
 | `paths.py` | Dataclasses for organized output path management (e.g., `ProjectPaths`). Class names should reflect ss-fha's domain, not TRITON-SWMM_toolkit's names. |
+| `analysis/` | Workflow orchestration modules — bridge between I/O (`zarr_io`, `gis_io`) and core computation (`flood_probability`, `bootstrapping`, etc.). Contains no computation of its own. |
+| `runners/` | CLI entry points for Snakemake-invoked workflow execution. Each runner uses argparse, logs to stdout, and emits a structured completion marker. |
 | `log.py` | JSON-persisted logging with LogField[T] pattern |
 
 ---
@@ -89,3 +91,4 @@ Reference files for patterns:
 - `n_years_synthesized` is 1000 for Norfolk but must never be inferred from `len(ds.year)` (which gives 954)
 - `n_years_observed` (18 for Norfolk) lives inside `PPCCTConfig`, not top-level on `SsfhaConfig`
 - Integer variables 156, 171, 170, 155, 140, 141 in time series NetCDFs are SWMM subcatchment IDs; ss-fha uses `mm_per_hr` (domain-wide avg rainfall intensity)
+- zarr V3 codecs cannot serialize dask-backed masked arrays from `.where(mask)`; call `.compute()` before `write_zarr()` — but beware full-scale memory implications (~25 GB at 3700 events x 550x550 grid)

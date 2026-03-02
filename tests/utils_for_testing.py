@@ -13,10 +13,10 @@ from pathlib import Path
 import pytest
 import xarray as xr
 
-
 # ---------------------------------------------------------------------------
 # Platform detection
 # ---------------------------------------------------------------------------
+
 
 def uses_slurm() -> bool:
     """Return True when running on a system where SLURM is available.
@@ -40,16 +40,14 @@ skip_if_no_slurm = pytest.mark.skipif(
 
 skip_if_no_hydroshare = pytest.mark.skipif(
     True,
-    reason=(
-        "HydroShare integration not yet implemented. "
-        "Deferred to HPC implementation phase."
-    ),
+    reason=("HydroShare integration not yet implemented. Deferred to HPC implementation phase."),
 )
 
 
 # ---------------------------------------------------------------------------
 # Assertion helpers
 # ---------------------------------------------------------------------------
+
 
 def assert_zarr_valid(path: Path, expected_vars: list[str] | None) -> None:
     """Assert that a zarr store exists and contains the expected variables.
@@ -83,9 +81,9 @@ def assert_zarr_valid(path: Path, expected_vars: list[str] | None) -> None:
 def assert_flood_probs_valid(ds: xr.Dataset) -> None:
     """Assert that a flood probability Dataset has the expected structure.
 
-    Checks for the presence of spatial coordinates and at least one data
-    variable. Specific variable names are not checked here because they
-    are determined by Phase 2+ implementation.
+    Checks for the presence of spatial coordinates and the flood
+    probability variables produced by ``compute_emp_cdf_and_return_pds``:
+    ``max_wlevel_m``, ``empirical_cdf``, and ``return_pd_yrs``.
 
     Parameters
     ----------
@@ -102,7 +100,10 @@ def assert_flood_probs_valid(ds: xr.Dataset) -> None:
             f"{missing_coords}. Present coords: {present_coords}"
         )
 
-    if len(ds.data_vars) == 0:
+    expected_vars = {"max_wlevel_m", "empirical_cdf", "return_pd_yrs"}
+    missing_vars = expected_vars - set(ds.data_vars)
+    if missing_vars:
         raise AssertionError(
-            "Flood probability Dataset has no data variables."
+            f"Flood probability Dataset is missing expected variables: "
+            f"{sorted(missing_vars)}. Present variables: {sorted(ds.data_vars)}"
         )

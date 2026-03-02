@@ -20,6 +20,10 @@ output_dir: {{data_dir}}/outputs/norfolk_ssfha_comparison/
 # --- Weather record lengths ---
 n_years_synthesized: 1000
 
+# --- Plotting position parameters ---
+alpha: 0.0
+beta: 0.0
+
 # --- Return periods ---
 return_periods: [1, 2, 10, 100]
 

@@ -349,6 +349,8 @@ class TestComparativeAnalysisValidation:
             toggle_ppcct=False,
             toggle_flood_risk=False,
             toggle_design_comparison=False,
+            alpha=0.0,
+            beta=0.0,
             triton_outputs=TritonOutputsConfig(combined="/tmp/fake.zarr"),
             event_data=EventDataConfig(sim_event_summaries="/tmp/fake.csv"),
             execution=ExecutionConfig(mode="local_concurrent"),
