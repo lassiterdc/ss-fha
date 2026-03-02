@@ -9,7 +9,7 @@ Read these files before beginning any task:
 
 ## Planning Document Lifecycle
 
-Read `~/dev/claude-workspace/specialist_agent_docs/planning-document-lifecycle.md` for the full lifecycle rules.
+Read `~/dev/claude-workspace/instructions/protocols/planning-document-lifecycle.md` for the full lifecycle rules.
 
 ---
 
@@ -33,9 +33,9 @@ This project uses a conda environment named `ss-fha`.
 ## Terminology
 
 See domain glossaries for shared definitions:
-- `~/dev/claude-workspace/glossary/flood_risk_management.md` — combined, compound, rain-only, surge-only, BDS, SSFHA, MCDS, event_iloc
-- `~/dev/claude-workspace/glossary/hydrology.md` — storm surge, storm tide, tidal phase, return period, AEP
-- `~/dev/claude-workspace/glossary/statistics.md` — marginal distribution, copula, vine copula, KNN resampling, Poisson process
+- `~/dev/claude-workspace/instructions/glossary/flood_risk_management.md` — combined, compound, rain-only, surge-only, BDS, SSFHA, MCDS, event_iloc
+- `~/dev/claude-workspace/instructions/glossary/hydrology.md` — storm surge, storm tide, tidal phase, return period, AEP
+- `~/dev/claude-workspace/instructions/glossary/statistics.md` — marginal distribution, copula, vine copula, KNN resampling, Poisson process
 
 ### System vs. Analysis vs. Comparative Analysis
 
@@ -76,4 +76,4 @@ These terms align with TRITON-SWMM_toolkit's `system_config` / `analysis_config`
 
 ## AI Working Norms
 
-Read `~/dev/claude-workspace/specialist_agent_docs/ai-working-norms.md` for the full protocol.
+Read `~/dev/claude-workspace/instructions/norms/ai-working-norms.md` for the full protocol.
