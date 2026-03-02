@@ -29,10 +29,10 @@ from pydantic import BaseModel, Field, model_validator
 from ss_fha.constants import WEATHER_EVENT_INDEX_YEAR_ALIASES
 from ss_fha.exceptions import ConfigurationError
 
-
 # ---------------------------------------------------------------------------
 # SystemConfig sub-models
 # ---------------------------------------------------------------------------
+
 
 class GeospatialConfig(BaseModel):
     watershed: Path
@@ -50,20 +50,12 @@ class SystemConfig(BaseModel):
     geospatial: GeospatialConfig
 
     @model_validator(mode="after")
-    def validate_fema_fields_paired(self) -> "SystemConfig":
+    def validate_fema_fields_paired(self) -> SystemConfig:
         raster = self.geospatial.fema_flood_raster
         return_pd = self.geospatial.fema_flood_raster_return_period_yr
         if (raster is None) != (return_pd is None):
-            missing = (
-                "fema_flood_raster_return_period_yr"
-                if raster is not None
-                else "fema_flood_raster"
-            )
-            provided = (
-                "fema_flood_raster"
-                if raster is not None
-                else "fema_flood_raster_return_period_yr"
-            )
+            missing = "fema_flood_raster_return_period_yr" if raster is not None else "fema_flood_raster"
+            provided = "fema_flood_raster" if raster is not None else "fema_flood_raster_return_period_yr"
             raise ConfigurationError(
                 field=missing,
                 message=(
@@ -77,6 +69,7 @@ class SystemConfig(BaseModel):
 # ---------------------------------------------------------------------------
 # Shared analysis sub-models
 # ---------------------------------------------------------------------------
+
 
 class TritonOutputsConfig(BaseModel):
     combined: Path
@@ -114,19 +107,28 @@ class UncertaintyConfig(BaseModel):
         ``np.random.default_rng(bootstrap_base_seed + i)``, ensuring every
         sample is independently reproducible. Record this value alongside your
         outputs for full run reproducibility.
+    bootstrap_quantiles:
+        Quantiles to compute across bootstrap samples for the combined CI
+        output. Specified as fractions in (0, 1). Typical choice: [0.05, 0.50,
+        0.95] for a 90% confidence interval with median. Must contain at least
+        one value.
     """
+
     n_bootstrap_samples: int
     bootstrap_base_seed: int
+    bootstrap_quantiles: list[float]
 
 
 class FloodRiskConfig(BaseModel):
     """Flood risk assessment configuration (fields added in chunk 01E / Phase 3F)."""
+
     pass
 
 
 # ---------------------------------------------------------------------------
 # Event statistics sub-models (02C)
 # ---------------------------------------------------------------------------
+
 
 class EventStatisticVariableConfig(BaseModel):
     """Configuration for one weather driver variable used in event statistic calculations.
@@ -187,7 +189,7 @@ class ExecutionConfig(BaseModel):
     slurm: SlurmConfig | None = None
 
     @model_validator(mode="after")
-    def validate_slurm_required_if_slurm_mode(self) -> "ExecutionConfig":
+    def validate_slurm_required_if_slurm_mode(self) -> ExecutionConfig:
         if self.mode == "slurm" and self.slurm is None:
             raise ConfigurationError(
                 field="execution.slurm",
@@ -199,6 +201,7 @@ class ExecutionConfig(BaseModel):
 # ---------------------------------------------------------------------------
 # SsfhaConfig
 # ---------------------------------------------------------------------------
+
 
 class SsfhaConfig(BaseModel):
     fha_approach: Literal["ssfha"]
@@ -227,7 +230,7 @@ class SsfhaConfig(BaseModel):
     execution: ExecutionConfig
 
     @model_validator(mode="after")
-    def validate_toggle_dependencies(self) -> "SsfhaConfig":
+    def validate_toggle_dependencies(self) -> SsfhaConfig:
         errors: list[str] = []
 
         # --- Comparative analysis: forbidden fields ---
@@ -244,8 +247,7 @@ class SsfhaConfig(BaseModel):
                 )
             if self.toggle_mcds:
                 errors.append(
-                    "is_comparative_analysis=True but toggle_mcds=True. "
-                    "MCDS is only valid on the primary analysis."
+                    "is_comparative_analysis=True but toggle_mcds=True. MCDS is only valid on the primary analysis."
                 )
 
         # --- Primary ssfha analysis: required fields ---
@@ -257,10 +259,7 @@ class SsfhaConfig(BaseModel):
                 )
             else:
                 # Validate that a year-like index is present
-                has_year = any(
-                    idx in WEATHER_EVENT_INDEX_YEAR_ALIASES
-                    for idx in self.weather_event_indices
-                )
+                has_year = any(idx in WEATHER_EVENT_INDEX_YEAR_ALIASES for idx in self.weather_event_indices)
                 if not has_year:
                     errors.append(
                         f"'weather_event_indices' must include a year index "
@@ -276,28 +275,18 @@ class SsfhaConfig(BaseModel):
 
         # --- Toggle dependencies ---
         if self.toggle_uncertainty and self.uncertainty is None:
-            errors.append(
-                "toggle_uncertainty=True but 'uncertainty' config section is missing"
-            )
+            errors.append("toggle_uncertainty=True but 'uncertainty' config section is missing")
 
         if self.toggle_ppcct:
             if self.ppcct is None:
-                errors.append(
-                    "toggle_ppcct=True but 'ppcct' config section is missing"
-                )
+                errors.append("toggle_ppcct=True but 'ppcct' config section is missing")
             if self.triton_outputs.observed is None:
-                errors.append(
-                    "toggle_ppcct=True but 'triton_outputs.observed' is not set"
-                )
+                errors.append("toggle_ppcct=True but 'triton_outputs.observed' is not set")
             if self.event_data.obs_event_summaries is None:
-                errors.append(
-                    "toggle_ppcct=True but 'event_data.obs_event_summaries' is not set"
-                )
+                errors.append("toggle_ppcct=True but 'event_data.obs_event_summaries' is not set")
 
         if self.toggle_design_comparison and not self.alt_fha_analyses:
-            errors.append(
-                "toggle_design_comparison=True but 'alt_fha_analyses' is empty"
-            )
+            errors.append("toggle_design_comparison=True but 'alt_fha_analyses' is empty")
 
         if errors:
             raise ConfigurationError(
@@ -311,6 +300,7 @@ class SsfhaConfig(BaseModel):
 # ---------------------------------------------------------------------------
 # BdsConfig
 # ---------------------------------------------------------------------------
+
 
 class BdsConfig(BaseModel):
     fha_approach: Literal["bds"]
@@ -329,14 +319,12 @@ class BdsConfig(BaseModel):
     execution: ExecutionConfig
 
     @model_validator(mode="after")
-    def validate_toggle_dependencies(self) -> "BdsConfig":
+    def validate_toggle_dependencies(self) -> BdsConfig:
         errors: list[str] = []
 
         if self.toggle_ppcct:
             if self.ppcct is None:
-                errors.append(
-                    "toggle_ppcct=True but 'ppcct' config section is missing"
-                )
+                errors.append("toggle_ppcct=True but 'ppcct' config section is missing")
 
         if errors:
             raise ConfigurationError(

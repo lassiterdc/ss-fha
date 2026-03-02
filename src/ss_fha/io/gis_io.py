@@ -84,8 +84,7 @@ def load_geospatial_data_from_file(
             operation="load geospatial data from file",
             filepath=path,
             reason=(
-                f"Unsupported file extension '{path.suffix}'. "
-                f"Supported extensions: {sorted(_SUPPORTED_GEO_EXTENSIONS)}"
+                f"Unsupported file extension '{path.suffix}'. Supported extensions: {sorted(_SUPPORTED_GEO_EXTENSIONS)}"
             ),
         )
 
@@ -232,8 +231,7 @@ def create_mask_from_polygon(
                 operation="create mask from polygon",
                 filepath=Path(source_label),
                 reason=(
-                    f"reference_ds is missing '{coord}' coordinate. "
-                    "Dataset must have x and y spatial coordinates."
+                    f"reference_ds is missing '{coord}' coordinate. Dataset must have x and y spatial coordinates."
                 ),
             )
 
@@ -246,7 +244,7 @@ def create_mask_from_polygon(
             shapes,
             transform=da_ref.rio.transform(),
             invert=True,
-            out_shape=da_ref.shape[-2:],
+            out_shape=(da_ref.sizes["y"], da_ref.sizes["x"]),
         )
     except Exception as e:
         raise DataError(
@@ -314,26 +312,19 @@ def rasterize_features(
                 operation="rasterize features",
                 filepath=Path("<GeoDataFrame>"),
                 reason=(
-                    f"reference_ds is missing '{coord}' coordinate. "
-                    "Dataset must have x and y spatial coordinates."
+                    f"reference_ds is missing '{coord}' coordinate. Dataset must have x and y spatial coordinates."
                 ),
             )
 
     first_var = next(iter(reference_ds.data_vars))
     da_ref = reference_ds[first_var]
-    out_shape = da_ref.shape[-2:]
+    out_shape = (da_ref.sizes["y"], da_ref.sizes["x"])
 
     try:
         if field is not None:
-            shapes = [
-                (mapping(row.geometry), int(row[field]))
-                for _, row in gdf.iterrows()
-            ]
+            shapes = [(mapping(row.geometry), int(row[field])) for _, row in gdf.iterrows()]
         else:
-            shapes = [
-                (mapping(row.geometry), idx + 1)
-                for idx, (_, row) in enumerate(gdf.iterrows())
-            ]
+            shapes = [(mapping(row.geometry), idx + 1) for idx, (_, row) in enumerate(gdf.iterrows())]
 
         rasterized = rasterio.features.rasterize(
             shapes,

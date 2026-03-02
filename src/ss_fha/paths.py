@@ -5,6 +5,24 @@ directories derived from a loaded `SSFHAConfig`. Input data paths (zarr files,
 shapefiles, CSVs) are stored directly on the config model and are not
 represented here.
 
+Path structure::
+
+    output_dir/               ← shared project root (multiple FHA analyses may share this)
+        {fha_id}/             ← per-analysis root (fha_dir); all workflow outputs live here
+            logs/
+            flood_probabilities/
+            bootstrap/
+                samples/
+            ppcct/
+            flood_risk/
+            event_statistics/
+            figures/
+
+Scoping workflow outputs under ``fha_id`` prevents collisions when multiple
+analysis configs (e.g. ``ssfha_combined`` and ``ssfha_triton_only_combined``)
+share the same ``output_dir``. This matches the Snakemake wildcard design in
+the master refactor plan (``{output_dir}/{fha_id}/flood_probabilities/...``).
+
 Usage::
 
     from ss_fha.config import load_config
@@ -25,7 +43,7 @@ from typing import TYPE_CHECKING
 from ss_fha.exceptions import ConfigurationError
 
 if TYPE_CHECKING:
-    from ss_fha.config.model import SsfhaConfig, BdsConfig
+    from ss_fha.config.model import BdsConfig, SsfhaConfig
 
     SSFHAConfig = SsfhaConfig | BdsConfig
 
@@ -39,30 +57,33 @@ class ProjectPaths:
     """
 
     # Root
-    output_dir: Path
+    output_dir: Path  # shared project output root (output_dir from config)
+
+    # Per-analysis root — all workflow dirs are nested under this
+    fha_dir: Path  # output_dir / fha_id
 
     # Shared infrastructure
-    logs_dir: Path              # output_dir / "logs"
+    logs_dir: Path  # fha_dir / "logs"
 
     # Workflow 1: Flood hazard
-    flood_probs_dir: Path       # output_dir / "flood_probabilities"
+    flood_probs_dir: Path  # fha_dir / "flood_probabilities"
 
     # Workflow 2: Uncertainty (bootstrap)
-    bootstrap_dir: Path         # output_dir / "bootstrap"
+    bootstrap_dir: Path  # fha_dir / "bootstrap"
     bootstrap_samples_dir: Path  # bootstrap_dir / "samples"
 
     # Workflow 3: PPCCT validation
-    ppcct_dir: Path             # output_dir / "ppcct"
+    ppcct_dir: Path  # fha_dir / "ppcct"
 
     # Workflow 4: Flood risk
-    flood_risk_dir: Path        # output_dir / "flood_risk"
+    flood_risk_dir: Path  # fha_dir / "flood_risk"
 
     # Shared outputs
-    event_stats_dir: Path       # output_dir / "event_statistics"
-    figures_dir: Path           # output_dir / "figures"
+    event_stats_dir: Path  # fha_dir / "event_statistics"
+    figures_dir: Path  # fha_dir / "figures"
 
     @classmethod
-    def from_config(cls, config: SSFHAConfig) -> "ProjectPaths":
+    def from_config(cls, config: SSFHAConfig) -> ProjectPaths:
         """Construct `ProjectPaths` from a loaded analysis config.
 
         Parameters
@@ -89,18 +110,20 @@ class ProjectPaths:
             )
 
         out = config.output_dir
-        bootstrap_dir = out / "bootstrap"
+        fha_dir = out / config.fha_id
+        bootstrap_dir = fha_dir / "bootstrap"
 
         return cls(
             output_dir=out,
-            logs_dir=out / "logs",
-            flood_probs_dir=out / "flood_probabilities",
+            fha_dir=fha_dir,
+            logs_dir=fha_dir / "logs",
+            flood_probs_dir=fha_dir / "flood_probabilities",
             bootstrap_dir=bootstrap_dir,
             bootstrap_samples_dir=bootstrap_dir / "samples",
-            ppcct_dir=out / "ppcct",
-            flood_risk_dir=out / "flood_risk",
-            event_stats_dir=out / "event_statistics",
-            figures_dir=out / "figures",
+            ppcct_dir=fha_dir / "ppcct",
+            flood_risk_dir=fha_dir / "flood_risk",
+            event_stats_dir=fha_dir / "event_statistics",
+            figures_dir=fha_dir / "figures",
         )
 
     def ensure_dirs_exist(self) -> None:

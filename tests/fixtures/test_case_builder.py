@@ -26,7 +26,7 @@ import pandas as pd
 import xarray as xr
 from shapely.geometry import box
 
-from ss_fha.config import load_config_from_dict, load_system_config
+from ss_fha.config import load_config_from_dict
 from ss_fha.config.model import SSFHAConfig
 from ss_fha.io.zarr_io import write_zarr
 
@@ -190,14 +190,85 @@ def build_synthetic_watershed(nx: int, ny: int, crs_epsg: int) -> gpd.GeoDataFra
         Single-row GeoDataFrame with a polygon covering the synthetic grid,
         in the specified CRS.
     """
-    # Mirror the coordinate generation in build_synthetic_triton_output
-    x_min = 364000.0
-    x_max = 364000.0 + 100.0 * nx
-    y_min = 4091000.0
-    y_max = 4091000.0 + 100.0 * ny
+    # Mirror the coordinate generation in build_synthetic_triton_output.
+    # Add 200 m buffer so rasterization includes all boundary grid cells — exact-
+    # boundary polygons can miss edge cells due to floating-point pixel-center tests.
+    x_min = 364000.0 - 200.0
+    x_max = 364000.0 + 100.0 * nx + 200.0
+    y_min = 4091000.0 - 200.0
+    y_max = 4091000.0 + 100.0 * ny + 200.0
 
     polygon = box(x_min, y_min, x_max, y_max)
     return gpd.GeoDataFrame({"geometry": [polygon]}, crs=f"EPSG:{crs_epsg}")
+
+
+def build_synthetic_event_iloc_mapping(
+    n_years: int,
+    arrival_rate: float,
+    seed: int,
+) -> pd.DataFrame:
+    """Build a synthetic event iloc mapping DataFrame.
+
+    Generates events per year using a Poisson process with the given arrival
+    rate, producing a flat table that maps each event to its year and
+    ``event_iloc`` index. This matches the real ``ss_event_iloc_mapping.csv``
+    schema used by the bootstrap runner.
+
+    The events-per-year count is intentionally variable (Poisson draws), which
+    is an important stress test for the bootstrap resampling logic — some
+    resampled years will contribute more events than others.
+
+    Parameters
+    ----------
+    n_years:
+        Number of synthetic years to generate events for. Years with zero
+        Poisson draws produce no rows (event-free years are omitted from the
+        mapping, matching the real data schema).
+    arrival_rate:
+        Mean number of events per year (Poisson λ). Use 5 for typical tests.
+    seed:
+        RNG seed for reproducibility.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with columns ``year`` (int) and ``event_iloc`` (int).
+        ``event_iloc`` is a flat 0-based index across all events. Years with
+        zero events are absent from the DataFrame (not present as zero-row
+        entries).
+
+    Raises
+    ------
+    AssertionError
+        If all years have the same event count — this would indicate the RNG
+        failed to produce variation, which would hide bugs in bootstrap
+        resampling. Only raises when n_years >= 10 (small n_years may
+        legitimately produce uniform counts by chance).
+    """
+    rng = np.random.default_rng(seed)
+    events_per_year = rng.poisson(lam=arrival_rate, size=n_years)
+
+    rows: list[dict] = []
+    event_iloc = 0
+    for year, n_events in enumerate(events_per_year):
+        for _ in range(n_events):
+            rows.append({"year": year, "event_iloc": event_iloc})
+            event_iloc += 1
+
+    df = pd.DataFrame(rows, columns=["year", "event_iloc"])
+
+    # Assert that events-per-year varies (important bootstrap stress test).
+    # Only check when n_years is large enough that uniform counts are unlikely.
+    if n_years >= 10:
+        unique_counts = np.unique(events_per_year[events_per_year > 0])
+        assert len(unique_counts) > 1 or len(events_per_year[events_per_year > 0]) == 0, (
+            f"build_synthetic_event_iloc_mapping: all event-bearing years have the same "
+            f"event count ({unique_counts[0] if len(unique_counts) > 0 else 0}). "
+            "This may indicate the RNG produced degenerate output. "
+            "Try a different seed or increase n_years."
+        )
+
+    return df
 
 
 def build_minimal_test_case(tmp_path: Path) -> SSFHAConfig:
@@ -274,6 +345,106 @@ def build_minimal_test_case(tmp_path: Path) -> SSFHAConfig:
         "toggle_design_comparison": False,
         "triton_outputs": {"combined": str(combined_zarr)},
         "event_data": {"sim_event_summaries": str(summaries_csv)},
+        "execution": {"mode": "local_concurrent"},
+    }
+    analysis_yaml = tmp_path / "analysis.yaml"
+    analysis_yaml.write_text(yaml.safe_dump(analysis_dict, sort_keys=False))
+
+    return load_config_from_dict(analysis_dict)
+
+
+def build_uncertainty_test_case(tmp_path: Path) -> SSFHAConfig:
+    """Create all synthetic data files for Workflow 2 tests and return an SSFHAConfig.
+
+    Extends ``build_minimal_test_case`` with:
+    - ``iloc_mapping.csv``   — synthetic event iloc mapping (Poisson arrivals)
+    - ``analysis.yaml``      — ``toggle_uncertainty: True`` with ``uncertainty``
+                               config section
+
+    Uses: 20 years synthesized, 5 bootstrap samples, 10 events, 10×10 grid,
+    EPSG:32147.
+
+    Parameters
+    ----------
+    tmp_path:
+        Temporary directory in which all files are written.
+
+    Returns
+    -------
+    SSFHAConfig
+        Fully valid, file-backed SsfhaConfig with uncertainty enabled.
+    """
+    import yaml
+
+    n_years_synthesized = 20
+    nx = 10
+    ny = 10
+    crs_epsg = 32147
+
+    # --- Build event iloc mapping first so n_events matches the zarr ---
+    # The mapping determines how many events exist; the TRITON zarr must have
+    # exactly that many event_iloc entries (0 to n_events-1).
+    df_mapping = build_synthetic_event_iloc_mapping(
+        n_years=n_years_synthesized,
+        arrival_rate=5.0,
+        seed=42,
+    )
+    n_sim_events = len(df_mapping)  # total events = rows in the mapping
+    iloc_mapping_csv = tmp_path / "iloc_mapping.csv"
+    df_mapping.to_csv(iloc_mapping_csv, index=False)
+
+    # --- Write combined TRITON zarr (n_events must match mapping) ---
+    ds_sim = build_synthetic_triton_output(n_events=n_sim_events, nx=nx, ny=ny)
+    combined_zarr = tmp_path / "combined.zarr"
+    write_zarr(ds=ds_sim, path=combined_zarr, encoding=None, overwrite=False)
+
+    # --- Write sim event summaries CSV ---
+    df_sim = build_synthetic_event_summaries(n_events=n_sim_events, include_obs_cols=False)
+    summaries_csv = tmp_path / "summaries.csv"
+    df_sim.to_csv(summaries_csv)
+
+    # --- Write synthetic watershed as GeoJSON ---
+    gdf = build_synthetic_watershed(nx=nx, ny=ny, crs_epsg=crs_epsg)
+    watershed_path = tmp_path / "watershed.geojson"
+    gdf.to_file(watershed_path, driver="GeoJSON")
+
+    # --- Write system.yaml ---
+    system_dict = {
+        "study_area_id": "synthetic_test_area",
+        "crs_epsg": crs_epsg,
+        "geospatial": {
+            "watershed": str(watershed_path),
+        },
+    }
+    system_yaml = tmp_path / "system.yaml"
+    system_yaml.write_text(yaml.safe_dump(system_dict, sort_keys=False))
+
+    # --- Write analysis.yaml ---
+    analysis_dict = {
+        "fha_approach": "ssfha",
+        "fha_id": "synthetic_ssfha_uncertainty",
+        "project_name": "synthetic_test_uncertainty",
+        "is_comparative_analysis": True,  # avoids requiring event_statistic_variables
+        "output_dir": str(tmp_path / "output"),
+        "n_years_synthesized": n_years_synthesized,
+        "return_periods": [1, 2, 10, 100],
+        "alpha": 0.0,
+        "beta": 0.0,
+        "toggle_uncertainty": True,
+        "toggle_mcds": False,
+        "toggle_ppcct": False,
+        "toggle_flood_risk": False,
+        "toggle_design_comparison": False,
+        "triton_outputs": {"combined": str(combined_zarr)},
+        "event_data": {
+            "sim_event_summaries": str(summaries_csv),
+            "sim_event_iloc_mapping": str(iloc_mapping_csv),
+        },
+        "uncertainty": {
+            "n_bootstrap_samples": 5,
+            "bootstrap_base_seed": 0,
+            "bootstrap_quantiles": [0.05, 0.50, 0.95],
+        },
         "execution": {"mode": "local_concurrent"},
     }
     analysis_yaml = tmp_path / "analysis.yaml"

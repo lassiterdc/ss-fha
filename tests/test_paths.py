@@ -9,7 +9,6 @@ from ss_fha.config import load_config_from_dict
 from ss_fha.exceptions import ConfigurationError
 from ss_fha.paths import ProjectPaths
 
-
 # ---------------------------------------------------------------------------
 # Shared fixture helpers
 # ---------------------------------------------------------------------------
@@ -52,6 +51,7 @@ def ssfha_config_no_output():
 # Import check
 # ---------------------------------------------------------------------------
 
+
 def test_project_paths_importable():
     """ProjectPaths can be imported from ss_fha.paths."""
     from ss_fha.paths import ProjectPaths  # noqa: F401
@@ -61,35 +61,56 @@ def test_project_paths_importable():
 # from_config: path resolution
 # ---------------------------------------------------------------------------
 
+
 def test_paths_from_config(ssfha_config_with_output, tmp_path):
-    """from_config() resolves all expected paths from output_dir."""
+    """from_config() resolves all expected paths under output_dir/fha_id/."""
     paths = ProjectPaths.from_config(ssfha_config_with_output)
     out = tmp_path / "outputs"
+    fha = out / "test_ssfha"  # fha_id from _MINIMAL_SSFHA_DICT
 
     assert paths.output_dir == out
-    assert paths.logs_dir == out / "logs"
-    assert paths.flood_probs_dir == out / "flood_probabilities"
-    assert paths.bootstrap_dir == out / "bootstrap"
-    assert paths.bootstrap_samples_dir == out / "bootstrap" / "samples"
-    assert paths.ppcct_dir == out / "ppcct"
-    assert paths.flood_risk_dir == out / "flood_risk"
-    assert paths.event_stats_dir == out / "event_statistics"
-    assert paths.figures_dir == out / "figures"
+    assert paths.fha_dir == fha
+    assert paths.logs_dir == fha / "logs"
+    assert paths.flood_probs_dir == fha / "flood_probabilities"
+    assert paths.bootstrap_dir == fha / "bootstrap"
+    assert paths.bootstrap_samples_dir == fha / "bootstrap" / "samples"
+    assert paths.ppcct_dir == fha / "ppcct"
+    assert paths.flood_risk_dir == fha / "flood_risk"
+    assert paths.event_stats_dir == fha / "event_statistics"
+    assert paths.figures_dir == fha / "figures"
 
 
 def test_paths_are_path_objects(ssfha_config_with_output):
     """All fields on ProjectPaths are Path instances."""
     paths = ProjectPaths.from_config(ssfha_config_with_output)
     for field in dataclasses.fields(paths):
-        assert isinstance(getattr(paths, field.name), Path), (
-            f"Field '{field.name}' is not a Path"
-        )
+        assert isinstance(getattr(paths, field.name), Path), f"Field '{field.name}' is not a Path"
 
 
 def test_bootstrap_samples_nested_under_bootstrap(ssfha_config_with_output):
     """bootstrap_samples_dir is a subdirectory of bootstrap_dir."""
     paths = ProjectPaths.from_config(ssfha_config_with_output)
     assert paths.bootstrap_samples_dir.parent == paths.bootstrap_dir
+
+
+def test_fha_dir_directly_under_output_dir(ssfha_config_with_output, tmp_path):
+    """fha_dir is output_dir / fha_id (one level below output_dir)."""
+    paths = ProjectPaths.from_config(ssfha_config_with_output)
+    assert paths.fha_dir == paths.output_dir / "test_ssfha"
+    assert paths.fha_dir.parent == paths.output_dir
+
+
+def test_workflow_dirs_under_fha_dir(ssfha_config_with_output):
+    """Every workflow _dir (except output_dir and fha_dir) is under fha_dir."""
+    paths = ProjectPaths.from_config(ssfha_config_with_output)
+    for field in dataclasses.fields(paths):
+        if field.name in ("output_dir", "fha_dir"):
+            continue
+        if field.name.endswith("_dir"):
+            value: Path = getattr(paths, field.name)
+            assert paths.fha_dir in value.parents, (
+                f"Field '{field.name}' ({value}) is not under fha_dir ({paths.fha_dir})"
+            )
 
 
 def test_all_dirs_are_under_output_dir(ssfha_config_with_output):
@@ -109,6 +130,7 @@ def test_all_dirs_are_under_output_dir(ssfha_config_with_output):
 # from_config: None output_dir raises
 # ---------------------------------------------------------------------------
 
+
 def test_from_config_raises_if_output_dir_is_none(ssfha_config_no_output):
     """from_config() raises ConfigurationError when output_dir is None."""
     assert ssfha_config_no_output.output_dir is None  # confirm precondition
@@ -120,6 +142,7 @@ def test_from_config_raises_if_output_dir_is_none(ssfha_config_no_output):
 # ---------------------------------------------------------------------------
 # ensure_dirs_exist
 # ---------------------------------------------------------------------------
+
 
 def test_ensure_dirs_creates_directories(ssfha_config_with_output):
     """ensure_dirs_exist() creates all _dir directories on the filesystem."""

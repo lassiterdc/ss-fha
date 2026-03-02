@@ -328,8 +328,8 @@ Additionally, maintain a tracking table in this planning document (updated after
 | `b2b_sim_vs_obs_flod_ppct.py` | NOT STARTED | `analysis/ppcct.py` | 3D |
 | `b2c_sim_vs_obs_fld_ppct.py` | NOT STARTED | `analysis/ppcct.py` | 3D |
 | `b2d_sim_vs_obs_fld_ppct.py` | NOT STARTED | `analysis/ppcct.py` + `visualization/` | 3D, 5 |
-| `c1_fpm_confidence_intervals_bootstrapping.py` | NOT STARTED | `analysis/uncertainty.py` | 3B |
-| `c1b_fpm_confidence_intervals_bootstrapping.py` | NOT STARTED | `analysis/uncertainty.py` | 3B |
+| `c1_fpm_confidence_intervals_bootstrapping.py` | COMPLETE — `analysis/uncertainty.py`, `runners/bootstrap_runner.py` | `analysis/uncertainty.py` | 3B |
+| `c1b_fpm_confidence_intervals_bootstrapping.py` | COMPLETE — `analysis/uncertainty.py`, `runners/bootstrap_combine_runner.py` | `analysis/uncertainty.py` | 3B |
 | `c2_fpm_confidence_intervals.py` | NOT STARTED | `analysis/uncertainty.py` + `visualization/` | 3B, 5 |
 | `d0_computing_event_statistic_probabilities.py` | NOT STARTED | `analysis/event_comparison.py` | 3C |
 | `d2_compare_ensemble-based_with_design_storms.py` | NOT STARTED | `analysis/design_comparison.py` | 3E |
@@ -847,12 +847,14 @@ Replaces: `b1_analyze_triton_outputs_fld_prob_calcs.py`
 
 Runner script: accepts `--config`, `--sim-type` (combined/surgeonly/rainonly/triton_only) args.
 
-#### Phase 3B: Workflow 2 -- `analysis/uncertainty.py` + bootstrap runners
+#### Phase 3B: Workflow 2 -- `analysis/uncertainty.py` + bootstrap runners — **COMPLETE** (2026-03-02)
 Replaces: `c1_*` and `c1b_*`
 - `runners/bootstrap_runner.py`: Compute single bootstrap sample (Snakemake parallelizes across sample IDs)
   - Args: `--config`, `--sample-id`, `--sim-type` (combined/surgeonly/rainonly/triton_only)
 - `runners/bootstrap_combine_runner.py`: Combine all samples and compute quantiles
   - Args: `--config`, `--sim-type`
+- `bootstrap_quantiles` added to `UncertaintyConfig` as a required user config field (not hardcoded)
+- `fha_id` namespacing added to `ProjectPaths` (all workflow dirs under `output_dir/fha_id/`)
 
 This is the primary HPC parallelization target -- 500 independent bootstrap samples.
 

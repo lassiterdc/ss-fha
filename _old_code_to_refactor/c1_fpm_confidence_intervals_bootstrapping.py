@@ -1,3 +1,19 @@
+# =============================================================================
+# REFACTORING STATUS (chunk 03B — 2026-03-02)
+# =============================================================================
+# STATUS: COMPLETE — replaced by src/ss_fha/analysis/uncertainty.py
+#
+# Migrated to src/ss_fha/analysis/uncertainty.py:
+#   run_bootstrap_sample()         — per-sample bootstrap + return period computation
+#   prepare_bootstrap_run()        — input validation before fan-out
+#
+# Core computation ported in chunk 02B:
+#   draw_bootstrap_years()         — src/ss_fha/core/bootstrapping.py
+#   assemble_bootstrap_sample()    — src/ss_fha/core/bootstrapping.py
+#   compute_return_period_indexed_depths() — src/ss_fha/core/bootstrapping.py
+#
+# Runner: src/ss_fha/runners/bootstrap_runner.py
+# =============================================================================
 # %%
 from local.__inputs import (
     F_TRITON_OUTPUTS,

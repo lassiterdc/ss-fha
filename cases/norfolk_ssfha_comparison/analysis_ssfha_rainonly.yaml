@@ -53,6 +53,7 @@ toggle_design_comparison: false  # Comparison is driven by the primary combined 
 uncertainty:
   n_bootstrap_samples: 500
   bootstrap_base_seed: 42
+  bootstrap_quantiles: [0.05, 0.50, 0.95]
 
 # --- Execution ---
 execution:

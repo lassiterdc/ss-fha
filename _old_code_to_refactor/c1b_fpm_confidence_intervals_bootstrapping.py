@@ -1,3 +1,13 @@
+# =============================================================================
+# REFACTORING STATUS (chunk 03B — 2026-03-02)
+# =============================================================================
+# STATUS: COMPLETE — replaced by src/ss_fha/analysis/uncertainty.py
+#
+# Migrated to src/ss_fha/analysis/uncertainty.py:
+#   combine_and_quantile()         — combine all per-sample zarrs, compute quantile CIs
+#
+# Runner: src/ss_fha/runners/bootstrap_combine_runner.py
+# =============================================================================
 # %%
 from local.__inputs import (
     MC_QUANTS_FOR_FLOOD_MAPPING,
