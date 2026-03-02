@@ -14,7 +14,10 @@
       "Bash(git log:*)",
       "Skill(reflect)",
       "Bash(bash:*)",
-      "Skill(session-wrapup)"
+      "Skill(session-wrapup)",
+      "Bash(git push:*)",
+      "Skill(implementation-plan)",
+      "WebFetch(domain:docs.anthropic.com)"
     ]
   }
 }
