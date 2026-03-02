@@ -204,8 +204,9 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# Scratch directory (subagent transcripts, temporary working files)
+# Scratch directories (subagent transcripts, temporary working files)
 .scratch/
+docs/planning/scratch/
 
 # Scientific data
 *.nc

@@ -13,7 +13,8 @@
       "Skill(qaqc-and-commit)",
       "Bash(git log:*)",
       "Skill(reflect)",
-      "Bash(bash:*)"
+      "Bash(bash:*)",
+      "Skill(session-wrapup)"
     ]
   }
 }
