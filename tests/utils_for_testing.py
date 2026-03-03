@@ -2,7 +2,7 @@
 
 Analogues to TRITON-SWMM_toolkit/tests/utils_for_testing.py — candidates
 for consolidation into a shared utility package (see
-docs/planning/utility_package_candidates.md).
+~/dev/dcl-utils/docs/planning/utility_package_candidates.md).
 """
 
 from __future__ import annotations

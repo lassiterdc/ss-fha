@@ -1,7 +1,7 @@
 """Generic xarray utilities for ss-fha.
 
 Functions here have no flood-domain logic and are candidates for extraction
-into a shared utility package (see docs/planning/utility_package_candidates.md).
+into a shared utility package (see ~/dev/dcl-utils/docs/planning/utility_package_candidates.md).
 """
 
 import xarray as xr

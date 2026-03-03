@@ -56,7 +56,7 @@ This is a repository for running large ensembles of hydrodynamic models. The cur
 **NOTE**: This library IS in the current environment at `/home/dcl3nd/dev/TRITON-SWMM_toolkit/`, so if any functions or classes can be used as-is, they should be imported rather than duplicated here.
 
 **When a TRITON-SWMM_toolkit function violates this project's design philosophy** (e.g., has default arguments that should be explicit, doesn't raise `DataError` on failure, or doesn't match the expected signature), write a fresh ss-fha implementation instead of importing. When doing so:
-1. Note the new function in `docs/planning/utility_package_candidates.md`, including which TRITON-SWMM_toolkit function it is analogous to
+1. Note the new function in `~/dev/dcl-utils/docs/planning/utility_package_candidates.md`, including which TRITON-SWMM_toolkit function it is analogous to
 2. Do not add a comment in the source code referencing the toolkit — the utility candidates list is the canonical record
 
 This codebase should not be considered representative of best practices, rather a representation of a design approach that worked. **The codebase should be considered a source to mine for good ideas.**

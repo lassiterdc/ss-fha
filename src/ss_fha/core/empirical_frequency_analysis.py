@@ -2,7 +2,7 @@
 
 All three functions in this module have zero flood/hydrology domain knowledge.
 They are tracked as utility package candidates in
-``docs/planning/utility_package_candidates.md``.
+``~/dev/dcl-utils/docs/planning/utility_package_candidates.md``.
 
 Consumers: ``flood_probability.py``, ``event_statistics.py``, ``geospatial.py``
 all import from here.
