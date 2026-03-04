@@ -14,6 +14,15 @@ Real data schema (verified 2026-02-26 against HydroShare model_results/):
   Event summaries CSV (obs):
     index  : event_type (str), year (int), event_id (str)
     cols   : precip_depth_mm (float), event_start (str/datetime)
+  Event time series NetCDF (sim, verified 2026-03-02):
+    dims   : event_type (str), year (int), event_id (int), timestep (datetime64)
+    data   : mm_per_hr (float64), waterlevel_m (float64)
+    note   : real data uses old event_type labels ("compound", "rain", "surge");
+             synthetic test data uses current labels ("combined", "rain_only", "surge_only")
+  Event iloc mapping CSV (sim, verified 2026-03-02):
+    cols   : event_iloc (int), year (int), event_type (str), event_id (int)
+    note   : real sim mapping uses "event_number" as the column name for event_iloc;
+             load code renames it. Obs mapping already uses "event_iloc".
 """
 
 from __future__ import annotations
@@ -444,6 +453,246 @@ def build_uncertainty_test_case(tmp_path: Path) -> SSFHAConfig:
             "n_bootstrap_samples": 5,
             "bootstrap_base_seed": 0,
             "bootstrap_quantiles": [0.05, 0.50, 0.95],
+        },
+        "execution": {"mode": "local_concurrent"},
+    }
+    analysis_yaml = tmp_path / "analysis.yaml"
+    analysis_yaml.write_text(yaml.safe_dump(analysis_dict, sort_keys=False))
+
+    return load_config_from_dict(analysis_dict)
+
+
+def build_synthetic_event_timeseries(
+    event_types: list[str],
+    n_years: int,
+    max_events_per_year_per_type: int,
+    n_timesteps: int,
+    include_stage: bool,
+    seed: int,
+) -> xr.Dataset:
+    """Build a synthetic event time series Dataset matching the real NetCDF schema.
+
+    Schema (verified 2026-03-02 against HydroShare events/ss_simulation_time_series.nc):
+    - Dims: event_type (str), year (int), event_id (int), timestep (datetime64)
+    - Data: mm_per_hr (float64), optionally waterlevel_m (float64)
+
+    Parameters
+    ----------
+    event_types:
+        List of event type labels (e.g. ``["combined", "rain_only", "surge_only"]``).
+    n_years:
+        Number of synthetic years.
+    max_events_per_year_per_type:
+        Maximum event_id value (events are 1-indexed; use 2 for small tests).
+    n_timesteps:
+        Number of timesteps per event.
+    include_stage:
+        If True, include ``waterlevel_m`` variable.
+    seed:
+        RNG seed for reproducibility.
+
+    Returns
+    -------
+    xr.Dataset
+        In-memory dataset structurally matching the real time series NetCDF.
+    """
+    rng = np.random.default_rng(seed=seed)
+
+    event_id_values = np.arange(1, max_events_per_year_per_type + 1, dtype=np.int64)
+    year_values = np.arange(n_years, dtype=np.int64)
+    timesteps = np.array(
+        [np.datetime64("2025-09-01T00:00") + np.timedelta64(i, "h") for i in range(n_timesteps)],
+        dtype="datetime64[ns]",
+    )
+
+    shape = (len(event_types), n_years, max_events_per_year_per_type, n_timesteps)
+    precip = rng.uniform(0.0, 20.0, size=shape).astype(np.float64)
+
+    data_vars: dict = {
+        "mm_per_hr": xr.DataArray(
+            precip,
+            dims=["event_type", "year", "event_id", "timestep"],
+        )
+    }
+    if include_stage:
+        stage = rng.uniform(0.0, 2.0, size=shape).astype(np.float64)
+        data_vars["waterlevel_m"] = xr.DataArray(
+            stage,
+            dims=["event_type", "year", "event_id", "timestep"],
+        )
+
+    return xr.Dataset(
+        data_vars,
+        coords={
+            "event_type": event_types,
+            "year": year_values,
+            "event_id": event_id_values,
+            "timestep": timesteps,
+        },
+    )
+
+
+def build_synthetic_iloc_mapping(
+    event_types: list[str],
+    n_years: int,
+    max_events_per_year_per_type: int,
+) -> pd.DataFrame:
+    """Build a synthetic iloc mapping DataFrame matching the real CSV schema.
+
+    Generates one row per (event_type, year, event_id) combination, assigning
+    a unique ``event_iloc`` flat integer index to each.
+
+    Schema (verified 2026-03-02 against HydroShare events/ss_event_iloc_mapping.csv):
+      Cols: event_iloc (int), year (int), event_type (str), event_id (int)
+
+    Note: the real sim mapping uses ``event_number`` as the column name.
+    The load code in ``event_comparison.py`` renames it to ``event_iloc``.
+    This synthetic builder uses ``event_iloc`` directly (the canonical name).
+
+    Parameters
+    ----------
+    event_types:
+        List of event type labels.
+    n_years:
+        Number of synthetic years.
+    max_events_per_year_per_type:
+        Maximum event_id value (1-indexed).
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with columns ``event_iloc``, ``year``, ``event_type``, ``event_id``.
+    """
+    rows: list[dict] = []
+    iloc = 0
+    for year in range(n_years):
+        for event_type in event_types:
+            for event_id in range(1, max_events_per_year_per_type + 1):
+                rows.append(
+                    {
+                        "event_iloc": iloc,
+                        "year": year,
+                        "event_type": event_type,
+                        "event_id": event_id,
+                    }
+                )
+                iloc += 1
+    return pd.DataFrame(rows)
+
+
+def build_event_stats_test_case(tmp_path: Path) -> SSFHAConfig:
+    """Create all synthetic data for event statistics tests and return a valid SSFHAConfig.
+
+    Writes:
+    - ``combined.zarr``      -- synthetic TRITON output (needed for config validation)
+    - ``summaries.csv``      -- synthetic event summaries
+    - ``watershed.geojson``  -- synthetic watershed
+    - ``timeseries.nc``      -- synthetic time series with mm_per_hr + waterlevel_m
+    - ``iloc_mapping.csv``   -- synthetic iloc mapping (event_iloc, year, event_type, event_id)
+    - ``system.yaml``        -- minimal SystemConfig
+    - ``analysis.yaml``      -- primary SsfhaConfig with event_statistic_variables
+
+    Uses: 3 event types, 5 years, 2 events/year/type, 48 timesteps, EPSG:32147.
+    Rain windows: 5-min, 60-min (1-hr), 1440-min (24-hr).
+
+    Parameters
+    ----------
+    tmp_path:
+        Temporary directory in which all files are written.
+
+    Returns
+    -------
+    SSFHAConfig
+        Fully valid, file-backed SsfhaConfig with event_statistic_variables configured.
+    """
+    import yaml
+
+    event_types = ["combined", "rain_only", "surge_only"]
+    n_years = 5
+    max_events_per_year_per_type = 2
+    n_timesteps = 48  # hourly steps -- covers 5-min, 1-hr, 24-hr rolling windows
+    crs_epsg = 32147
+    n_sim_events = len(event_types) * n_years * max_events_per_year_per_type  # 30
+
+    # --- Write TRITON zarr (needed for config validation) ---
+    ds_sim = build_synthetic_triton_output(n_events=n_sim_events, nx=5, ny=5)
+    combined_zarr = tmp_path / "combined.zarr"
+    write_zarr(ds=ds_sim, path=combined_zarr, encoding=None, overwrite=False)
+
+    # --- Write event summaries CSV ---
+    df_sim = build_synthetic_event_summaries(n_events=n_sim_events, include_obs_cols=False)
+    summaries_csv = tmp_path / "summaries.csv"
+    df_sim.to_csv(summaries_csv)
+
+    # --- Write synthetic watershed ---
+    gdf = build_synthetic_watershed(nx=5, ny=5, crs_epsg=crs_epsg)
+    watershed_path = tmp_path / "watershed.geojson"
+    gdf.to_file(watershed_path, driver="GeoJSON")
+
+    # --- Write event time series NetCDF ---
+    ds_tseries = build_synthetic_event_timeseries(
+        event_types=event_types,
+        n_years=n_years,
+        max_events_per_year_per_type=max_events_per_year_per_type,
+        n_timesteps=n_timesteps,
+        include_stage=True,
+        seed=99,
+    )
+    timeseries_nc = tmp_path / "timeseries.nc"
+    ds_tseries.to_netcdf(str(timeseries_nc), engine="h5netcdf")
+
+    # --- Write iloc mapping CSV ---
+    df_mapping = build_synthetic_iloc_mapping(
+        event_types=event_types,
+        n_years=n_years,
+        max_events_per_year_per_type=max_events_per_year_per_type,
+    )
+    iloc_mapping_csv = tmp_path / "iloc_mapping.csv"
+    df_mapping.to_csv(iloc_mapping_csv, index=False)
+
+    # --- Write system.yaml ---
+    system_dict = {
+        "study_area_id": "synthetic_test_area",
+        "crs_epsg": crs_epsg,
+        "geospatial": {"watershed": str(watershed_path)},
+    }
+    system_yaml = tmp_path / "system.yaml"
+    system_yaml.write_text(yaml.safe_dump(system_dict, sort_keys=False))
+
+    # --- Write analysis.yaml ---
+    analysis_dict = {
+        "fha_approach": "ssfha",
+        "fha_id": "synthetic_ssfha_event_stats",
+        "project_name": "synthetic_test_event_stats",
+        "is_comparative_analysis": False,
+        "output_dir": str(tmp_path / "output"),
+        "n_years_synthesized": n_years,
+        "return_periods": [1, 2, 10],
+        "alpha": 0.0,
+        "beta": 0.0,
+        "toggle_uncertainty": False,
+        "toggle_mcds": False,
+        "toggle_ppcct": False,
+        "toggle_flood_risk": False,
+        "toggle_design_comparison": False,
+        "weather_event_indices": ["event_type", "year", "event_id"],
+        "triton_outputs": {"combined": str(combined_zarr)},
+        "event_data": {
+            "sim_event_summaries": str(summaries_csv),
+            "sim_event_timeseries": str(timeseries_nc),
+            "sim_event_iloc_mapping": str(iloc_mapping_csv),
+        },
+        "event_statistic_variables": {
+            "precip_intensity": {
+                "variable_name": "mm_per_hr",
+                "units": "mm_per_hr",
+                "max_intensity_windows_min": [60, 360, 1440],
+            },
+            "boundary_stage": {
+                "variable_name": "waterlevel_m",
+                "units": "m",
+                "max_intensity_windows_min": None,
+            },
         },
         "execution": {"mode": "local_concurrent"},
     }

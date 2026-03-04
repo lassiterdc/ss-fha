@@ -92,3 +92,4 @@ Reference files for patterns:
 - `n_years_observed` (18 for Norfolk) lives inside `PPCCTConfig`, not top-level on `SsfhaConfig`
 - Integer variables 156, 171, 170, 155, 140, 141 in time series NetCDFs are SWMM subcatchment IDs; ss-fha uses `mm_per_hr` (domain-wide avg rainfall intensity)
 - zarr V3 codecs cannot serialize dask-backed masked arrays from `.where(mask)`; call `.compute()` before `write_zarr()` — but beware full-scale memory implications (~25 GB at 3700 events x 550x550 grid)
+- zarr v3 string coordinates (dtype `object` or `str`) emit `UnstableSpecificationWarning` for `FixedLengthUTF32` encoding; use `ds[coord].encoding["dtype"] = str` to get vlen_utf8 instead, which suppresses the warning and produces spec-conformant zarr v3 strings

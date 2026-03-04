@@ -331,7 +331,7 @@ Additionally, maintain a tracking table in this planning document (updated after
 | `c1_fpm_confidence_intervals_bootstrapping.py` | COMPLETE — `analysis/uncertainty.py`, `runners/bootstrap_runner.py` | `analysis/uncertainty.py` | 3B |
 | `c1b_fpm_confidence_intervals_bootstrapping.py` | COMPLETE — `analysis/uncertainty.py`, `runners/bootstrap_combine_runner.py` | `analysis/uncertainty.py` | 3B |
 | `c2_fpm_confidence_intervals.py` | NOT STARTED | `analysis/uncertainty.py` + `visualization/` | 3B, 5 |
-| `d0_computing_event_statistic_probabilities.py` | NOT STARTED | `analysis/event_comparison.py` | 3C |
+| `d0_computing_event_statistic_probabilities.py` | COMPLETE — `analysis/event_comparison.py`, `runners/event_stats_runner.py` | `analysis/event_comparison.py` | 3C |
 | `d2_compare_ensemble-based_with_design_storms.py` | NOT STARTED | `analysis/design_comparison.py` | 3E |
 | `e2_investigating_flood_depth_area_probability.py` | NOT STARTED | `analysis/flood_hazard.py` + `visualization/` | 3A, 5 |
 | `f1_box_and_whiskers_event_rtrn_vs_fld_rtrn.py` | NOT STARTED | `analysis/flood_risk.py` | 3F |
@@ -858,10 +858,12 @@ Replaces: `c1_*` and `c1b_*`
 
 This is the primary HPC parallelization target -- 500 independent bootstrap samples.
 
-#### Phase 3C: Event Statistics -- `analysis/event_comparison.py` + `runners/event_stats_runner.py`
+#### Phase 3C: Event Statistics -- `analysis/event_comparison.py` + `runners/event_stats_runner.py` — **COMPLETE** (2026-03-02)
 Replaces: `d0_computing_event_statistic_probabilities.py`
 - Compute univariate and multivariate event return periods
-- Bootstrap event return period uncertainty
+- Output is `xr.DataTree` with `/univariate` and `/multivariate` nodes; dual zarr/NetCDF format via `--output-format` CLI arg
+- `event_iloc` always sourced from `sim_event_iloc_mapping`; weather indexers stored as 1D non-index coordinates
+- Bootstrap event return period uncertainty deferred to future chunk `03C-ext`
 - Supports Workflows 1 and 4
 
 #### Phase 3D: Workflow 3 -- `analysis/ppcct.py` + `runners/ppcct_runner.py`

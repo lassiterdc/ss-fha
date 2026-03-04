@@ -1,3 +1,10 @@
+# REFACTORING STATUS: COMPLETE (2026-03-02)
+# Refactored into:
+#   src/ss_fha/analysis/event_comparison.py  — orchestration + DataTree output
+#   src/ss_fha/runners/event_stats_runner.py — CLI runner
+#   src/ss_fha/core/event_statistics.py      — core computation (Phase 02C)
+# See: docs/planning/refactors/2026-02-25_full_codebase_refactor/work_chunks/implemented/03C_event_statistics_runner.md
+
 # %%
 from local.__inputs import (
     F_SIM_TSERIES,

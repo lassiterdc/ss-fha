@@ -98,8 +98,11 @@ event_data:
   # TODO: confirm meaning before I/O layer (01D) can label them correctly).
 
   sim_event_iloc_mapping: /mnt/d/Dropbox/_GradSchool/repos/ss-fha/hydroshare_data/events/ss_event_iloc_mapping.csv
-  # Shape: (3798, 4). Cols: event_iloc, year, event_type, event_id.
+  # Shape: (3798, 4). Cols: event_number (deprecated — rename to event_iloc on load), year, event_type, event_id.
   # Maps flat event_iloc (zarr dim) to the 3D index used in time series NetCDFs.
+  # TERMINOLOGY NOTE: event_type values in this file use older labels ("compound", "surge", "rain")
+  # rather than the current codebase convention ("combined", "surge_only", "rain_only").
+  # This is a known data hygiene issue — rename on load if needed for consistency.
 
   obs_event_summaries: /mnt/d/Dropbox/_GradSchool/repos/ss-fha/hydroshare_data/events/obs_event_summaries_from_yrs_with_complete_coverage.csv
   # Shape: (71, ~61). Per-event stats for 71 observed events from complete-coverage years.
