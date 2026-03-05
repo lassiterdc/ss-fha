@@ -55,6 +55,7 @@ The QAQC report for this phase must include a **Lessons Learned** section summar
 - [ ] `return_number_of_impacted_features` vs. new equivalent alignment test
 - [ ] `compute_min_rtrn_pd_of_impact_for_unique_features` vs. new equivalent alignment test
 - [ ] All tests pass
+- [ ] `sys.exit()` inventory (Phase 5 rows): no `sys.exit()` calls in geospatial named functions — mark all Phase 5 rows N/A in master.md inventory table
 - [ ] Lessons Learned section filled in
 - [ ] Move this doc to `implemented/`
 

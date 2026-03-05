@@ -61,6 +61,7 @@ The QAQC report for this phase must include a **Lessons Learned** section summar
 - [ ] `compute_all_multivariate_return_period_combinations` alignment test
 - [ ] Bootstrap event return period functions alignment test (at minimum `bs_samp_of_univar_event_return_period`)
 - [ ] All tests pass
+- [ ] `sys.exit()` inventory (Phase 4 rows): confirm `raise SSFHAError` for `compute_univariate_event_return_periods` (`__utils.py:2217`, `2219`), `compute_all_multivariate_return_period_combinations` (`__utils.py:2352`), `bs_samp_of_univar/multivar_event_return_period` (`__utils.py:2460`); mark `__utils.py:2507` N/A (dev scaffolding); fill in inventory table columns in master.md
 - [ ] Lessons Learned section filled in
 - [ ] Move this doc to `implemented/`
 

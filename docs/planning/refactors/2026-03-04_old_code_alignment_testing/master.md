@@ -274,6 +274,66 @@ No named functions. All QAQC / plotting — deferred to Phase 5 or excluded.
 
 ---
 
+## sys.exit() Inventory
+
+Every active (non-commented) `sys.exit()` call in the old code was a developer-era assertion — "this should never happen, crash hard if it does." The refactor's convention replaces these with `raise SSFHAError(...)`. This section catalogs every such call across all load-bearing old scripts and assigns each to a phase that is responsible for verifying the ported code handles it correctly.
+
+### Categories
+
+- **Validation** — detect an impossible state in a named function; must become `raise SSFHAError(...)` in the ported function, verified by an error-path test
+- **Test-only guard** — guarded by a `testing=True` flag, never runs in production; not ported
+- **Dev scaffolding** — "stop here to inspect" sentinel added during development; not ported
+- **Flow control** — script-level bail-out (e.g., "already done, skip"); ports as logging + early return, not exception
+- **Main section** — validation in script main-section code with no enclosing named function; ports as a `raise` inside the ported orchestration function or runner
+
+### Table
+
+Columns: `raise` in new? and Error-path test? are filled in by the assigned phase.
+
+| Script | Line | Enclosing context | Condition | Category | Phase | Ported to | `raise` in new? | Error-path test? |
+|--------|------|-------------------|-----------|----------|-------|-----------|-----------------|------------------|
+| `__utils.py` | 1567 | `calculate_positions` | NaN values present | Validation | 2 | `core.empirical_frequency_analysis.calculate_positions` | | |
+| `__utils.py` | 1853 | `compute_emp_cdf_and_return_pds` (`testing=True`) | Plotting position check | Test-only guard | 2 | N/A — not ported | N/A | N/A |
+| `__utils.py` | 1291 | `bootstrapping_return_period_estimates` | Sort order check failed | Validation | 3 | `core.bootstrapping.sort_last_dim` / `compute_return_period_indexed_depths` | | |
+| `__utils.py` | 1343 | `bootstrapping_return_period_estimates` | Return period coord mismatch | Validation | 3 | `core.bootstrapping.compute_return_period_indexed_depths` | | |
+| `__utils.py` | 2217 | `compute_univariate_event_return_periods` | NA values (1 of 2) | Validation | 4 | `core.event_statistics.compute_univariate_event_return_periods` | | |
+| `__utils.py` | 2219 | `compute_univariate_event_return_periods` | NA values (2 of 2) | Validation | 4 | `core.event_statistics.compute_univariate_event_return_periods` | | |
+| `__utils.py` | 2352 | `compute_all_multivariate_return_period_combinations` | Computation problem | Validation | 4 | `core.event_statistics.compute_all_multivariate_return_period_combinations` | | |
+| `__utils.py` | 2460 | `bs_samp_of_univar/multivar_event_return_period` | Computation problem | Validation | 4 | `core.event_statistics.bs_samp_of_univar/multivar_event_return_period` | | |
+| `__utils.py` | 2507 | `analyze_bootstrapped_samples` | Incomplete implementation sentinel | Dev scaffolding | 4 | N/A — not ported | N/A | N/A |
+| `__utils.py` (geospatial fns) | — | — | — | — | 5 | None in scope | N/A | N/A |
+| `c1b_...` | — | — | — | — | 6 | None in scope | N/A | N/A |
+| `b2c_...` | 163 | `interpolate_cdf` | Missing values in interpolation | Validation | 03D | `core.ppcct` (not yet ported) | Deferred | Deferred |
+| `b2c_...` | 265 | main section | Threshold consistency check | Main section | 03D | `analysis.ppcct` orchestration | Deferred | Deferred |
+| `b2c_...` | 270 | main section | p-value consistency check | Main section | 03D | `analysis.ppcct` orchestration | Deferred | Deferred |
+| `b2c_...` | 276 | main section | Unknown problem | Main section | 03D | `analysis.ppcct` orchestration | Deferred | Deferred |
+| `d0_...` | 188 | main section | Bootstrap already complete | Flow control | 03C (complete) | Runner early-exit | N/A | N/A |
+| `d2_...` | 821 | main section | Undefined case | Main section | 03E | Not yet ported | Deferred | Deferred |
+| `d2_...` | 1132 | main section | Undefined case | Main section | 03E | Not yet ported | Deferred | Deferred |
+| `d2_...` | 1144 | main section | Undefined case | Main section | 03E | Not yet ported | Deferred | Deferred |
+| `d2_...` | 696 | main section | Skip plots sentinel | Dev scaffolding | 03E | N/A | N/A | N/A |
+| `d2_...` | 1241 | module level | Script-level early-exit guard | Flow control | 03E | N/A | N/A | N/A |
+| `e2_...` | 218 | main section | Unrecognized form | Main section | 03F | Not yet ported | Deferred | Deferred |
+| `e2_...` | 237 | main section | Sim form not recognized | Main section | 03F | Not yet ported | Deferred | Deferred |
+| `e2_...` | 251 | main section | No valid values | Main section | 03F | Not yet ported | Deferred | Deferred |
+| `f1_...` | 802 | main section | Unsupported hazard level count | Main section | Phase 5 | Not yet ported | Deferred | Deferred |
+| `f1_...` | 916 | main section | Unrecognized depth range | Main section | Phase 5 | Not yet ported | Deferred | Deferred |
+| `f1_...` | 1191 | main section | Various | Main section | Phase 5 | Not yet ported | Deferred | Deferred |
+| `f1_...` | 1390 | main section | Unrecognized key | Main section | Phase 5 | Not yet ported | Deferred | Deferred |
+| `f1_...` | 1478 | main section | Dev sentinel | Dev scaffolding | Phase 5 | N/A | N/A | N/A |
+| `f1_...` | 1791 | main section | Unsupported hazard level count | Main section | Phase 5 | Not yet ported | Deferred | Deferred |
+| `f1_...` | 1906 | main section | Unrecognized depth range | Main section | Phase 5 | Not yet ported | Deferred | Deferred |
+| `f1_...` | 1943 | main section | Various | Main section | Phase 5 | Not yet ported | Deferred | Deferred |
+| `f1_...` | 2205 | main section | Unrecognized key | Main section | Phase 5 | Not yet ported | Deferred | Deferred |
+| `f1_...` | 2285 | module level | Script-level guard | Flow control | Phase 5 | N/A | N/A | N/A |
+| `f2_...` | 387 | main section | Univariate return period length | Main section | Phase 5 | Not yet ported | Deferred | Deferred |
+| `f2_...` | 669 | module level | "this code chunk doesn't work" | Dev scaffolding | Phase 5 | N/A | N/A | N/A |
+| `f2_...` | 747 | module level | Script-level early-exit | Flow control | Phase 5 | N/A | N/A | N/A |
+| `f2_...` | 752 | module level | Script-level early-exit | Flow control | Phase 5 | N/A | N/A | N/A |
+| `f2_...` | 1058 | main section (plotting) | Dev sentinel | Dev scaffolding | Phase 5 | N/A | N/A | N/A |
+
+---
+
 ## Phase Status Table
 
 | Phase | Title | Status | Doc |

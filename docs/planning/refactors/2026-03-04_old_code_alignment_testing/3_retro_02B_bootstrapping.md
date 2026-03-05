@@ -54,6 +54,7 @@ The QAQC report for this phase must include a **Lessons Learned** section summar
 - [ ] `bootstrapping_return_period_estimates` old vs. `assemble_bootstrap_sample` + `compute_return_period_indexed_depths` pipeline equivalence test
 - [ ] Tests use fixed seeds for reproducibility
 - [ ] Tests pass
+- [ ] `sys.exit()` inventory (Phase 3 rows): confirm `raise SSFHAError` exists for sort order check (`__utils.py:1291`) and return period coord mismatch (`__utils.py:1343`); fill in `raise in new?` and `Error-path test?` columns in master.md inventory table
 - [ ] Lessons Learned section filled in
 - [ ] Move this doc to `implemented/`
 

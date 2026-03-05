@@ -82,6 +82,7 @@ The QAQC report for this phase must include a **Lessons Learned** section summar
 - [ ] 03C alignment notebook written, executed cleanly, committed
 - [ ] `compute_bootstrapped_flood_depth_cis` direct import test added to `test_align_uncertainty_workflow.py`
 - [ ] All tests pass
+- [ ] `sys.exit()` inventory (Phase 6 rows): no `sys.exit()` calls in named functions for 03A/03B/03C scope — mark all Phase 6 rows N/A in master.md inventory table
 - [ ] Lessons Learned section filled in
 - [ ] Move this doc to `implemented/`
 

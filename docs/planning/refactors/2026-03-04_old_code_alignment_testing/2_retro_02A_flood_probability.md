@@ -69,6 +69,7 @@ The QAQC report for this phase must include a **Lessons Learned** section summar
 - [ ] Test asserts numerical equivalence between old and new on synthetic data (multiple configurations of alpha/beta and n_years)
 - [ ] `stack_wlevel_dataset` behavior verified via comparison on stacked vs. unstacked input
 - [ ] Tests pass
+- [ ] `sys.exit()` inventory (Phase 2 rows): confirm `raise SSFHAError` exists for `calculate_positions` NaN path (`__utils.py:1567`); mark `__utils.py:1853` N/A (test-only guard); fill in `raise in new?` and `Error-path test?` columns in master.md inventory table
 - [ ] Lessons Learned section filled in
 - [ ] Move this doc to `implemented/`
 
