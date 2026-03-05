@@ -43,6 +43,10 @@ conda run -n ss-fha pytest tests/test_old_code_alignment/test_align_bootstrappin
 conda run -n ss-fha pytest tests/ -v
 ```
 
+## QAQC Notes
+
+The QAQC report for this phase must include a **Lessons Learned** section summarizing any insights from implementation — particularly surprises, obstacles, or deviations from plan. Move observations into the Lessons Learned section below as they arise during implementation so the QAQC report can pull from it directly. Phase 8 synthesizes all phase lessons learned into the master refactor plan appendix.
+
 ## Definition of Done
 
 - [ ] `test_align_bootstrapping.py` written
@@ -50,6 +54,7 @@ conda run -n ss-fha pytest tests/ -v
 - [ ] `bootstrapping_return_period_estimates` old vs. `assemble_bootstrap_sample` + `compute_return_period_indexed_depths` pipeline equivalence test
 - [ ] Tests use fixed seeds for reproducibility
 - [ ] Tests pass
+- [ ] Lessons Learned section filled in
 - [ ] Move this doc to `implemented/`
 
 ## Lessons Learned

@@ -40,9 +40,13 @@ Consider whether the volume of insights from the lessons learned appendix warran
 
 Manual review of skill file and appendix quality. Cross-check that the DoD checkbox wording in the skill exactly matches what was used in Phases 2–7.
 
+## QAQC Notes
+
+The QAQC report for this phase must include a **Lessons Learned** section synthesizing insights from all prior phase Lessons Learned sections. This is the final synthesis — the output feeds directly into the `full_codebase_refactor.md` appendix and `refactor-plan` skill update.
+
 ## Definition of Done
 
-- [ ] `full_codebase_refactor.md` Appendix: Old-Code Alignment Lessons Learned section written
+- [ ] `full_codebase_refactor.md` Appendix: Old-Code Alignment Lessons Learned section written (synthesized from phase docs)
 - [ ] `refactor-plan` SKILL.md updated with alignment protocol language and DoD checkbox template
 - [ ] If volume warrants it: `~/dev/claude-workspace/skills/refactor-plan/protocols/` subdirectory created with protocol document
 - [ ] Move this doc to `implemented/`

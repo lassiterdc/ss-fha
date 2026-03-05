@@ -46,10 +46,15 @@ Also add to the Workflow Phases section that the `refactor-plan` skill enforces 
 
 This phase is documentation-only — no code changes. Validation is manual review of updated files.
 
+## QAQC Notes
+
+The QAQC report for this phase must include a **Lessons Learned** section summarizing any insights from implementation — particularly surprises, obstacles, or deviations from plan. Move observations into the Lessons Learned section below as they arise during implementation so the QAQC report can pull from it directly. Phase 8 synthesizes all phase lessons learned into the master refactor plan appendix.
+
 ## Definition of Done
 
 - [ ] `03D_workflow3_ppcct.md` DoD updated with alignment gate
 - [ ] `full_codebase_refactor.md` Requirements item 8 updated with full protocol language
+- [ ] Lessons Learned section filled in
 - [ ] Move this doc to `implemented/`
 
 ## Lessons Learned

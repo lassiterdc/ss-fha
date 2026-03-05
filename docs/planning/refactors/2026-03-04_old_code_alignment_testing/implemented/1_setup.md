@@ -74,6 +74,10 @@ conda run -n ss-fha pytest tests/test_old_code_alignment/ -v
 conda run -n ss-fha pytest tests/ -v
 ```
 
+## QAQC Notes
+
+The QAQC report for this phase must include a **Lessons Learned** section summarizing any insights from implementation — particularly surprises, obstacles, or deviations from plan. Move observations into the Lessons Learned section below as they arise during implementation so the QAQC report can pull from it directly. Phase 8 synthesizes all phase lessons learned into the master refactor plan appendix.
+
 ## Definition of Done
 
 - [ ] `tests/test_old_code_alignment/__init__.py` created
@@ -81,8 +85,11 @@ conda run -n ss-fha pytest tests/ -v
 - [ ] `assert_event_comparison_valid` investigated, implemented or import removed
 - [ ] `pytest tests/test_old_code_alignment/ -v` passes (no tests yet, but package is importable)
 - [ ] `pytest tests/ -v` passes (no regressions)
+- [ ] Lessons Learned section filled in
 - [ ] Move this doc to `implemented/`
 
 ## Lessons Learned
 
-_(fill in after implementation)_
+- `MagicMock()` approach for `sys.modules["__inputs"]` works cleanly — session-scoped autouse fixture requires zero per-test boilerplate.
+- Run `ruff format` before validation tests; a formatting mismatch in the new function would have caused CI failure if hooks were active.
+- `assert_event_comparison_valid` was a silent bug (ImportError only at collection time, not when the function was written). Lesson: assertion helpers in `utils_for_testing.py` should be imported and exercised in at least one test at the time they are written.

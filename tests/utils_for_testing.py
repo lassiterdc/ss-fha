@@ -78,6 +78,64 @@ def assert_zarr_valid(path: Path, expected_vars: list[str] | None) -> None:
     ds.close()
 
 
+def assert_event_comparison_valid(dt: xr.DataTree) -> None:
+    """Assert that an event comparison DataTree has the expected structure.
+
+    Checks for the ``/univariate`` and ``/multivariate`` child nodes, root
+    attributes (``fha_id``, ``weather_event_indices``), and the expected
+    dimensions and data variables in each node.
+
+    Parameters
+    ----------
+    dt:
+        DataTree to validate (output of ``run_event_comparison``).
+    """
+    # Root attributes
+    missing_attrs = {"fha_id", "weather_event_indices"} - set(dt.attrs)
+    if missing_attrs:
+        raise AssertionError(
+            f"Event comparison DataTree is missing root attributes: "
+            f"{sorted(missing_attrs)}. Present attrs: {sorted(dt.attrs)}"
+        )
+
+    # Child nodes
+    child_names = set(dt.children)
+    required_children = {"univariate", "multivariate"}
+    missing_children = required_children - child_names
+    if missing_children:
+        raise AssertionError(
+            f"Event comparison DataTree is missing child nodes: "
+            f"{sorted(missing_children)}. Present children: {sorted(child_names)}"
+        )
+
+    # Univariate node
+    ds_uni = dt["univariate"].dataset
+    if "event_iloc" not in ds_uni.dims:
+        raise AssertionError(f"Univariate node is missing 'event_iloc' dimension. Present dims: {list(ds_uni.dims)}")
+
+    # Multivariate node
+    ds_multi = dt["multivariate"].dataset
+    required_multi_dims = {"event_iloc", "event_stats"}
+    missing_dims = required_multi_dims - set(ds_multi.dims)
+    if missing_dims:
+        raise AssertionError(
+            f"Multivariate node is missing dimensions: {sorted(missing_dims)}. Present dims: {list(ds_multi.dims)}"
+        )
+
+    expected_multi_vars = {
+        "empirical_multivar_cdf_AND",
+        "empirical_multivar_cdf_OR",
+        "empirical_multivar_rtrn_yrs_AND",
+        "empirical_multivar_rtrn_yrs_OR",
+    }
+    missing_vars = expected_multi_vars - set(ds_multi.data_vars)
+    if missing_vars:
+        raise AssertionError(
+            f"Multivariate node is missing expected variables: "
+            f"{sorted(missing_vars)}. Present variables: {sorted(ds_multi.data_vars)}"
+        )
+
+
 def assert_flood_probs_valid(ds: xr.Dataset) -> None:
     """Assert that a flood probability Dataset has the expected structure.
 

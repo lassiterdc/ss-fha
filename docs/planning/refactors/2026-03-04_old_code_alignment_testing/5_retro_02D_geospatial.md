@@ -43,6 +43,10 @@ conda run -n ss-fha pytest tests/test_old_code_alignment/test_align_geospatial.p
 conda run -n ss-fha pytest tests/ -v
 ```
 
+## QAQC Notes
+
+The QAQC report for this phase must include a **Lessons Learned** section summarizing any insights from implementation — particularly surprises, obstacles, or deviations from plan. Move observations into the Lessons Learned section below as they arise during implementation so the QAQC report can pull from it directly. Phase 8 synthesizes all phase lessons learned into the master refactor plan appendix.
+
 ## Definition of Done
 
 - [ ] `test_align_geospatial.py` written
@@ -51,6 +55,7 @@ conda run -n ss-fha pytest tests/ -v
 - [ ] `return_number_of_impacted_features` vs. new equivalent alignment test
 - [ ] `compute_min_rtrn_pd_of_impact_for_unique_features` vs. new equivalent alignment test
 - [ ] All tests pass
+- [ ] Lessons Learned section filled in
 - [ ] Move this doc to `implemented/`
 
 ## Lessons Learned

@@ -278,7 +278,7 @@ No named functions. All QAQC / plotting — deferred to Phase 5 or excluded.
 
 | Phase | Title | Status | Doc |
 |-------|-------|--------|-----|
-| 1 | Setup: package structure + `__inputs` mock | Pending | `1_setup.md` |
+| 1 | Setup: package structure + `__inputs` mock | **Complete** | `implemented/1_setup.md` |
 | 2 | Retroactive: 02A flood probability | Pending | `2_retro_02A_flood_probability.md` |
 | 3 | Retroactive: 02B bootstrapping | Pending | `3_retro_02B_bootstrapping.md` |
 | 4 | Retroactive: 02C event statistics gaps | Pending | `4_retro_02C_event_statistics.md` |

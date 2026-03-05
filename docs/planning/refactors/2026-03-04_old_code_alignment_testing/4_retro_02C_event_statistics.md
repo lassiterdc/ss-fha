@@ -49,6 +49,10 @@ conda run -n ss-fha pytest tests/test_old_code_alignment/test_align_event_statis
 conda run -n ss-fha pytest tests/ -v
 ```
 
+## QAQC Notes
+
+The QAQC report for this phase must include a **Lessons Learned** section summarizing any insights from implementation — particularly surprises, obstacles, or deviations from plan. Move observations into the Lessons Learned section below as they arise during implementation so the QAQC report can pull from it directly. Phase 8 synthesizes all phase lessons learned into the master refactor plan appendix.
+
 ## Definition of Done
 
 - [ ] `test_align_event_statistics.py` written
@@ -57,6 +61,7 @@ conda run -n ss-fha pytest tests/ -v
 - [ ] `compute_all_multivariate_return_period_combinations` alignment test
 - [ ] Bootstrap event return period functions alignment test (at minimum `bs_samp_of_univar_event_return_period`)
 - [ ] All tests pass
+- [ ] Lessons Learned section filled in
 - [ ] Move this doc to `implemented/`
 
 ## Lessons Learned

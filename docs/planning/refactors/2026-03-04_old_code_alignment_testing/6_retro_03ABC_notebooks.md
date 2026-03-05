@@ -70,6 +70,10 @@ conda run -n ss-fha jupyter nbconvert --to notebook --execute _old_code_to_refac
 # Repeat for 03B and 03C
 ```
 
+## QAQC Notes
+
+The QAQC report for this phase must include a **Lessons Learned** section summarizing any insights from implementation — particularly surprises, obstacles, or deviations from plan. Move observations into the Lessons Learned section below as they arise during implementation so the QAQC report can pull from it directly. Phase 8 synthesizes all phase lessons learned into the master refactor plan appendix.
+
 ## Definition of Done
 
 - [ ] `_old_code_to_refactor/demonstrating_functional_alignment/` directory created
@@ -78,6 +82,7 @@ conda run -n ss-fha jupyter nbconvert --to notebook --execute _old_code_to_refac
 - [ ] 03C alignment notebook written, executed cleanly, committed
 - [ ] `compute_bootstrapped_flood_depth_cis` direct import test added to `test_align_uncertainty_workflow.py`
 - [ ] All tests pass
+- [ ] Lessons Learned section filled in
 - [ ] Move this doc to `implemented/`
 
 ## Lessons Learned
