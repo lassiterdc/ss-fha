@@ -2181,9 +2181,12 @@ def bs_samp_of_univar_event_return_period(
                 ["formulation", "event_stat", "return_period_yrs"]
             )
             # rename return pd and quantile columns
+            # NOTE: nested f-string fixed for Python 3.11 compatibility (original
+            # used f"{formulation}{col.split(f"{event_stat}_")[-1]}" which requires 3.12+)
+            _split_key = f"{event_stat}_"
             colnames = [
                 (
-                    f"{formulation}{col.split(f"{event_stat}_")[-1]}"
+                    f"{formulation}{col.split(_split_key)[-1]}"
                     if ("return" in col) or ("emp_cdf" in col)
                     else col
                 )

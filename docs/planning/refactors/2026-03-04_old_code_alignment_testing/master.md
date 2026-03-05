@@ -1,6 +1,6 @@
 ---
 created: 2026-03-04
-last_edited: 2026-03-04 — initial draft
+last_edited: 2026-03-05 — Phase 2 complete; sys.exit() inventory Phase 2 rows filled
 ---
 
 # Old-Code Alignment Testing Protocol — Master Plan
@@ -38,7 +38,7 @@ This plan has three goals:
 
 All old scripts use `from __inputs import *`. `__inputs.py` creates directories at import time and defines hundreds of path constants. Direct import requires mocking `sys.modules["__inputs"]` before importing `__utils` or any script module.
 
-**Implementation**: `tests/test_old_code_alignment/conftest.py` inserts a mock module into `sys.modules["__inputs"]` as a session-scoped fixture, making all named functions in `__utils.py` and the b2/b2b/b2c/b2d scripts importable via normal `import` statements.
+**Implementation**: `tests/test_old_code_alignment/conftest.py` inserts mock modules into `sys.modules["__inputs"]`, `sys.modules["local"]`, and `sys.modules["local.__inputs"]` at **module level** (not inside a fixture — old-code imports happen at pytest collection time, before fixtures run). This makes all named functions in `__utils.py` and the b2/b2b/b2c/b2d scripts importable via normal `import` statements.
 
 Functions in `__utils.py` that have `sys.exit()` inside them must be tested carefully — if the test input triggers the `sys.exit()` path, pytest will catch it as `SystemExit`. Tests must use inputs that do not trigger those paths.
 
@@ -292,7 +292,7 @@ Columns: `raise` in new? and Error-path test? are filled in by the assigned phas
 
 | Script | Line | Enclosing context | Condition | Category | Phase | Ported to | `raise` in new? | Error-path test? |
 |--------|------|-------------------|-----------|----------|-------|-----------|-----------------|------------------|
-| `__utils.py` | 1567 | `calculate_positions` | NaN values present | Validation | 2 | `core.empirical_frequency_analysis.calculate_positions` | | |
+| `__utils.py` | 1567 | `calculate_positions` | NaN values present | Validation | 2 | `core.empirical_frequency_analysis.calculate_positions` | Yes | Yes (`test_calculate_positions_raises_on_nan_without_fillna`) |
 | `__utils.py` | 1853 | `compute_emp_cdf_and_return_pds` (`testing=True`) | Plotting position check | Test-only guard | 2 | N/A — not ported | N/A | N/A |
 | `__utils.py` | 1291 | `bootstrapping_return_period_estimates` | Sort order check failed | Validation | 3 | `core.bootstrapping.sort_last_dim` / `compute_return_period_indexed_depths` | | |
 | `__utils.py` | 1343 | `bootstrapping_return_period_estimates` | Return period coord mismatch | Validation | 3 | `core.bootstrapping.compute_return_period_indexed_depths` | | |
@@ -339,7 +339,7 @@ Columns: `raise` in new? and Error-path test? are filled in by the assigned phas
 | Phase | Title | Status | Doc |
 |-------|-------|--------|-----|
 | 1 | Setup: package structure + `__inputs` mock | **Complete** | `implemented/1_setup.md` |
-| 2 | Retroactive: 02A flood probability | Pending | `2_retro_02A_flood_probability.md` |
+| 2 | Retroactive: 02A flood probability | **Complete** | `implemented/2_retro_02A_flood_probability.md` |
 | 3 | Retroactive: 02B bootstrapping | Pending | `3_retro_02B_bootstrapping.md` |
 | 4 | Retroactive: 02C event statistics gaps | Pending | `4_retro_02C_event_statistics.md` |
 | 5 | Retroactive: 02D geospatial | Pending | `5_retro_02D_geospatial.md` |
