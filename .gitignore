@@ -53,8 +53,15 @@ site/
 # .idea/
 # .vscode/
 
-/CLAUDE.md
 
-/AGENTS.md
 
 /.claude/
+
+# >>> local agent entrypoints (generated, do not edit) >>>
+# Files that local agent tooling writes into this checkout; not part of the project.
+# This block is rewritten automatically, so edits inside it are discarded.
+/.claude/settings.local.json
+/.clinerules
+/AGENTS.md
+/CLAUDE.md
+# <<< local agent entrypoints <<<
